@@ -10,6 +10,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(router);
 
-app.listen(PORT, () =>
+const server = app.listen(PORT, () =>
 	console.log(`Syntasso C Engine is listening on port ${PORT}...`)
 );
+
+module.exports = server;
