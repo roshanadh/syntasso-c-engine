@@ -3,7 +3,6 @@ const bodyParser = require("body-parser");
 
 const router = require("./routes/index.js");
 const { PORT } = require("./config.js");
-const { json } = require("body-parser");
 
 const app = express();
 app.set("json spaces", 2);
