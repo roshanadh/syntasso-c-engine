@@ -6,31 +6,31 @@ const {
 	compileInCContainer,
 	execInCContainer,
 } = require("../docker/index.js");
-
-const containerName = "cont_c";
-const submissionFileName = "hello-world.c";
+const { respondWith503 } = require("../util/templateResponses.js");
 
 const handleConfigZero = (req, res) => {
-	buildCImage()
+	const containerName = req.body.socketId;
+	const submissionFileName = `${req.body.socketId}.c`;
+
+	const { socketInstance } = require("../server.js");
+
+	buildCImage(req, socketInstance)
 		.then(stdout => {
 			console.log("C image built.");
-			createCContainer(containerName)
+			createCContainer(req, socketInstance)
 				.then(stdout => {
 					console.log(`C container ${containerName} created.`);
-					startCContainer(containerName)
+					startCContainer(req, socketInstance)
 						.then(stdout => {
 							console.log(
 								`C container ${containerName} started.`
 							);
-							compileInCContainer(
-								containerName,
-								submissionFileName
-							)
+							compileInCContainer(req, socketInstance)
 								.then(stdout => {
 									console.log(
 										`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 									);
-									execInCContainer(containerName)
+									execInCContainer(req, socketInstance)
 										.then(stdout => {
 											console.log(
 												`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
@@ -40,49 +40,37 @@ const handleConfigZero = (req, res) => {
 											});
 										})
 										.catch(error => {
-											res.status(503).json({
-												error:
-													"Service currently unavailable due to server conditions",
-											});
+											return respondWith503(res);
 										});
 								})
 								.catch(error => {
-									res.status(503).json({
-										error:
-											"Service currently unavailable due to server conditions",
-									});
+									return respondWith503(res);
 								});
 						})
 						.catch(error => {
-							res.status(503).json({
-								error:
-									"Service currently unavailable due to server conditions",
-							});
+							return respondWith503(res);
 						});
 				})
 				.catch(error => {
-					res.status(503).json({
-						error:
-							"Service currently unavailable due to server conditions",
-					});
+					return respondWith503(res);
 				});
 		})
 		.catch(error => {
-			res.status(503).json({
-				error: "Service currently unavailable due to server conditions",
-			});
+			return respondWith503(res);
 		});
 };
 const handleConfigOne = (req, res) => {
-	startCContainer(containerName)
+	const containerName = req.body.socketId;
+	const submissionFileName = `${req.body.socketId}.c`;
+	startCContainer(req, socketInstance)
 		.then(stdout => {
 			console.log(`C container ${containerName} started.`);
-			compileInCContainer(containerName, submissionFileName)
+			compileInCContainer(req, socketInstance)
 				.then(stdout => {
 					console.log(
 						`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 					);
-					execInCContainer(containerName)
+					execInCContainer(req, socketInstance)
 						.then(stdout => {
 							console.log(
 								`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
@@ -92,32 +80,26 @@ const handleConfigOne = (req, res) => {
 							});
 						})
 						.catch(error => {
-							res.status(503).json({
-								error:
-									"Service currently unavailable due to server conditions",
-							});
+							return respondWith503(res);
 						});
 				})
 				.catch(error => {
-					res.status(503).json({
-						error:
-							"Service currently unavailable due to server conditions",
-					});
+					return respondWith503(res);
 				});
 		})
 		.catch(error => {
-			res.status(503).json({
-				error: "Service currently unavailable due to server conditions",
-			});
+			return respondWith503(res);
 		});
 };
 const handleConfigTwo = (req, res) => {
-	compileInCContainer(containerName, submissionFileName)
+	const containerName = req.body.socketId;
+	const submissionFileName = `${req.body.socketId}.c`;
+	compileInCContainer(req, socketInstance)
 		.then(stdout => {
 			console.log(
 				`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 			);
-			execInCContainer(containerName)
+			execInCContainer(req, socketInstance)
 				.then(stdout => {
 					console.log(
 						`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
@@ -127,21 +109,16 @@ const handleConfigTwo = (req, res) => {
 					});
 				})
 				.catch(error => {
-					res.status(503).json({
-						error:
-							"Service currently unavailable due to server conditions",
-					});
+					return respondWith503(res);
 				});
 		})
 		.catch(error => {
-			res.status(503).json({
-				error: "Service currently unavailable due to server conditions",
-			});
+			return respondWith503(res);
 		});
 };
 
 module.exports = (req, res) => {
-	generateSubmissionFile("hello-world.c", req.body.code)
+	generateSubmissionFile(req)
 		.then(() => {
 			const dockerConfig = parseInt(req.body.dockerConfig);
 			switch (dockerConfig) {
