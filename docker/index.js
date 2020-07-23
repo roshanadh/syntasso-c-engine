@@ -4,4 +4,5 @@ module.exports = {
 	startCContainer: require("./startCContainer.js"),
 	compileInCContainer: require("./compileInCContainer.js"),
 	execInCContainer: require("./execInCContainer.js"),
+	removeCContainer: require("./removeCContainer.js"),
 };
