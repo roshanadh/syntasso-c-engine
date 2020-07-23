@@ -8,7 +8,7 @@ module.exports = (req, socketInstance) => {
 			const { socketId } = req.body;
 			const containerName = socketId;
 
-			removeCContainer(req, socketInstance)
+			removeCContainer(containerName)
 				.then(stdout => {
 					console.log(
 						`Creating a C container named ${containerName}...`
