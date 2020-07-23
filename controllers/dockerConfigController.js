@@ -62,6 +62,9 @@ const handleConfigZero = (req, res) => {
 const handleConfigOne = (req, res) => {
 	const containerName = req.body.socketId;
 	const submissionFileName = `${req.body.socketId}.c`;
+
+	const { socketInstance } = require("../server.js");
+
 	startCContainer(req, socketInstance)
 		.then(stdout => {
 			console.log(`C container ${containerName} started.`);
@@ -94,6 +97,9 @@ const handleConfigOne = (req, res) => {
 const handleConfigTwo = (req, res) => {
 	const containerName = req.body.socketId;
 	const submissionFileName = `${req.body.socketId}.c`;
+
+	const { socketInstance } = require("../server.js");
+
 	compileInCContainer(req, socketInstance)
 		.then(stdout => {
 			console.log(
@@ -133,7 +139,8 @@ module.exports = (req, res) => {
 					break;
 			}
 		})
-		.catch(err => {
+		.catch(error => {
+			console.error(`error in dockerConfigController:`, error);
 			res.status(503).json({
 				error: "Service currently unavailable due to server conditions",
 			});
