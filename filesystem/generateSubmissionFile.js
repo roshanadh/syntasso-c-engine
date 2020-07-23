@@ -2,12 +2,13 @@ const fs = require("fs");
 const path = require("path");
 
 module.exports = req => {
-	const fileName = `${req.body.socketId}.c`;
+	const { socketId } = req.body;
+	const fileName = `${socketId}.c`;
 	const filePath = path.resolve(
 		__dirname,
 		"..",
 		"client-files",
-		"submission",
+		socketId,
 		fileName
 	);
 
