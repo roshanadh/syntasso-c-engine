@@ -4,6 +4,7 @@ module.exports.socketValidator = req => {
 
 	if (!req.body.socketId) return "no-socket";
 	if (!listOfClients.includes(req.body.socketId)) return "unknown-socket";
+	req.session.socketId = req.body.socketId;
 };
 
 module.exports.codeValidator = req => (req.body.code ? true : false);
