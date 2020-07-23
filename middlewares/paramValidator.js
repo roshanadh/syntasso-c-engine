@@ -1,3 +1,11 @@
+module.exports.socketValidator = req => {
+	const { socketInstance } = require("../server.js");
+	const listOfClients = Object.keys(socketInstance.instance.sockets.sockets);
+
+	if (!req.body.socketId) return "no-socket";
+	if (!listOfClients.includes(req.body.socketId)) return "unknown-socket";
+};
+
 module.exports.codeValidator = req => (req.body.code ? true : false);
 
 module.exports.dockerConfigValidator = req => {
