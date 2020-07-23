@@ -1,7 +1,8 @@
 const fs = require("fs");
 const path = require("path");
 
-module.exports = (fileName, code) => {
+module.exports = req => {
+	const fileName = `${req.body.socketId}.c`;
 	const filePath = path.resolve(
 		__dirname,
 		"..",
@@ -9,6 +10,8 @@ module.exports = (fileName, code) => {
 		"submission",
 		fileName
 	);
+
+	const { code } = req.body;
 	return new Promise((resolve, reject) => {
 		console.log(`Generating submission file named ${fileName}`);
 		fs.writeFile(filePath, code, error => {
