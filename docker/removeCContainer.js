@@ -40,6 +40,7 @@ module.exports = socketId => {
 						console.log(
 							`stdout while removing container ${containerName}: ${stdout}`
 						);
+					console.log(`C container named ${containerName} removed.`);
 					return resolve(stdout);
 				}
 			);
