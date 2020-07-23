@@ -1,6 +1,8 @@
 const { exec } = require("child_process");
 
-module.exports = (req, socketInstance) => {
+const copyClientFilesToCContainer = require("./copyClientFilesToCContainer");
+
+const compileSubmission = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
 		try {
 			const { socketId } = req.body;
@@ -14,13 +16,13 @@ module.exports = (req, socketInstance) => {
 				stdout: `Compiling user's submission...`,
 			});
 
-			console.log(submissionFileName);
 			exec(
 				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission`,
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
-							`error while compiling submission inside container ${containerName}: ${error}`
+							`error while compiling submission inside container ${containerName}:`,
+							error
 						);
 						socketInstance.instance
 							.to(socketId)
@@ -31,7 +33,8 @@ module.exports = (req, socketInstance) => {
 						return reject(error);
 					} else if (stderr) {
 						console.error(
-							`stderr while compiling submission inside container ${containerName}: ${stderr}`
+							`stderr while compiling submission inside container ${containerName}:`,
+							stderr
 						);
 						socketInstance.instance
 							.to(socketId)
@@ -62,5 +65,23 @@ module.exports = (req, socketInstance) => {
 			console.log(`error during compileInCContainer: ${error}`);
 			return reject(error);
 		}
+	});
+};
+
+module.exports = (req, socketInstance) => {
+	return new Promise((resolve, reject) => {
+		copyClientFilesToCContainer(req, socketInstance)
+			.then(stdout => {
+				compileSubmission(req, socketInstance)
+					.then(stdout => {
+						return resolve(stdout);
+					})
+					.catch(error => {
+						return reject(error);
+					});
+			})
+			.catch(error => {
+				return reject(error);
+			});
 	});
 };
