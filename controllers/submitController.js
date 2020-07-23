@@ -3,6 +3,8 @@ const {
 	codeValidator,
 	dockerConfigValidator,
 } = require("../middlewares/paramValidator.js");
+const { respondWith503 } = require("../util/templateResponses");
+const { initDirectories } = require("../filesystem/index.js");
 
 module.exports = (req, res, next) => {
 	switch (socketValidator(req)) {
@@ -35,6 +37,11 @@ module.exports = (req, res, next) => {
 				error: "dockerConfig should be one of [0, 1, 2]",
 			});
 		default:
-			next();
+			break;
 	}
+	initDirectories(req.session.socketId)
+		.then(() => next())
+		.catch(error => {
+			respondWith503(res);
+		});
 };
