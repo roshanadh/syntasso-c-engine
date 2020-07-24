@@ -1,5 +1,7 @@
 const { exec } = require("child_process");
 
+const { writeOutputToFile } = require("../filesystem/index.js");
+
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
 		try {
@@ -14,7 +16,7 @@ module.exports = (req, socketInstance) => {
 			});
 
 			exec(
-				`docker exec -i ${containerName} ./submission`,
+				`docker exec -i ${containerName} node main-wrapper.js`,
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
@@ -39,16 +41,20 @@ module.exports = (req, socketInstance) => {
 							});
 						return reject(stderr);
 					}
-					if (stdout.trim() !== "")
-						console.log(
-							`stdout while executing submission inside container ${containerName}: ${stdout}`
-						);
+					console.log(
+						`stdout while executing submission inside container ${containerName}: ${stdout}`
+					);
 					socketInstance.instance
 						.to(socketId)
 						.emit("docker-app-stdout", {
 							stdout: `User's submission executed`,
 						});
-					return resolve(stdout);
+					//  write output to client-files/outputs/${socketId}.txt
+					writeOutputToFile(socketId, stdout)
+						.then(() => resolve(stdout))
+						.catch(error => {
+							return reject(error);
+						});
 				}
 			);
 		} catch (error) {
