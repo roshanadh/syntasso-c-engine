@@ -2,6 +2,7 @@ const socket = require("socket.io");
 const cryptoRandomString = require("crypto-random-string");
 
 const { removeCContainer } = require("../docker/index.js");
+const { cleanUpTempFiles } = require("../filesystem/index.js");
 
 class Socket {
 	constructor(server) {
@@ -24,6 +25,7 @@ class Socket {
 				);
 				console.log(`REASON: ${reason}\n`);
 				removeCContainer(socket.id);
+				cleanUpTempFiles(socket.id);
 			});
 		});
 	}
