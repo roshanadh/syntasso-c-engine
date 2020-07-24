@@ -1,4 +1,5 @@
 const { exec } = require("child_process");
+const path = require("path");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
@@ -6,53 +7,58 @@ module.exports = (req, socketInstance) => {
 			const { socketId } = req.body;
 			const containerName = socketId;
 
-			console.log(
-				`Executing user's submission in container ${containerName}`
-			);
+			console.log(`Copying client files to container ${containerName}`);
 			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
-				stdout: `Executing user's submission...`,
+				stdout: `Copying client files to container...`,
 			});
 
+			const localPath = path.resolve(
+				__dirname,
+				"..",
+				"client-files",
+				socketId
+			);
+
 			exec(
-				`docker exec -i ${containerName} ./submission`,
+				`docker cp ${localPath}/. ${containerName}:/usr/src/sandbox/`,
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
-							`error while executing submission inside container ${containerName}:`,
+							`error while copying client files to container ${containerName}:`,
 							error
 						);
 						socketInstance.instance
 							.to(socketId)
 							.emit("docker-app-stdout", {
-								stdout: `error while executing submission`,
+								stdout: `error while copying client files`,
 							});
 						return reject(error);
 					} else if (stderr) {
 						console.error(
-							`stderr while executing submission inside container ${containerName}:`,
+							`stderr while copying client files to container ${containerName}:`,
 							stderr
 						);
 						socketInstance.instance
 							.to(socketId)
 							.emit("docker-app-stdout", {
-								stdout: `stderr while executing submission: ${stderr}`,
+								stdout: `stderr while copying client files: ${stderr}`,
 							});
 						return reject(stderr);
 					}
 					if (stdout.trim() !== "")
 						console.log(
-							`stdout while executing submission inside container ${containerName}: ${stdout}`
+							`stdout while copying client files to container ${containerName}: ${stdout}`
 						);
 					socketInstance.instance
 						.to(socketId)
 						.emit("docker-app-stdout", {
-							stdout: `User's submission executed`,
+							stdout: `client files copied`,
 						});
 					return resolve(stdout);
 				}
 			);
 		} catch (error) {
-			console.log(`error during execInCContainer:`, error);
+			console.log(`error during copySubmissionToCContainer:`, error);
 			return reject(error);
 		}
 	});

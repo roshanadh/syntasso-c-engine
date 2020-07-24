@@ -6,142 +6,102 @@ const {
 	compileInCContainer,
 	execInCContainer,
 } = require("../docker/index.js");
-
-const containerName = "cont_c";
-const submissionFileName = "hello-world.c";
+const { respondWithError } = require("../util/templateResponses.js");
 
 const handleConfigZero = (req, res) => {
-	buildCImage()
+	const containerName = req.body.socketId;
+
+	const { socketInstance } = require("../server.js");
+
+	buildCImage(req, socketInstance)
 		.then(stdout => {
 			console.log("C image built.");
-			createCContainer(containerName)
-				.then(stdout => {
-					console.log(`C container ${containerName} created.`);
-					startCContainer(containerName)
-						.then(stdout => {
-							console.log(
-								`C container ${containerName} started.`
-							);
-							compileInCContainer(
-								containerName,
-								submissionFileName
-							)
-								.then(stdout => {
-									console.log(
-										`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
-									);
-									execInCContainer(containerName)
-										.then(stdout => {
-											console.log(
-												`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
-											);
-											res.status(200).json({
-												output: stdout,
-											});
-										})
-										.catch(error => {
-											res.status(503).json({
-												error:
-													"Service currently unavailable due to server conditions",
-											});
-										});
-								})
-								.catch(error => {
-									res.status(503).json({
-										error:
-											"Service currently unavailable due to server conditions",
-									});
-								});
-						})
-						.catch(error => {
-							res.status(503).json({
-								error:
-									"Service currently unavailable due to server conditions",
-							});
-						});
-				})
-				.catch(error => {
-					res.status(503).json({
-						error:
-							"Service currently unavailable due to server conditions",
-					});
-				});
+			return createCContainer(req, socketInstance);
+		})
+		.then(stdout => {
+			console.log(`C container ${containerName} created.`);
+			return handleConfigOne(req, res);
 		})
 		.catch(error => {
-			res.status(503).json({
-				error: "Service currently unavailable due to server conditions",
-			});
+			return respondWithError(
+				res,
+				503,
+				"Service unavailable due to server conditions"
+			);
 		});
 };
 const handleConfigOne = (req, res) => {
-	startCContainer(containerName)
+	const containerName = req.body.socketId;
+
+	const { socketInstance } = require("../server.js");
+
+	startCContainer(req, socketInstance)
 		.then(stdout => {
 			console.log(`C container ${containerName} started.`);
-			compileInCContainer(containerName, submissionFileName)
-				.then(stdout => {
-					console.log(
-						`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
-					);
-					execInCContainer(containerName)
-						.then(stdout => {
-							console.log(
-								`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
-							);
-							res.status(200).json({
-								output: stdout,
-							});
-						})
-						.catch(error => {
-							res.status(503).json({
-								error:
-									"Service currently unavailable due to server conditions",
-							});
-						});
-				})
-				.catch(error => {
-					res.status(503).json({
-						error:
-							"Service currently unavailable due to server conditions",
-					});
-				});
+			return handleConfigTwo(req, res);
 		})
 		.catch(error => {
-			res.status(503).json({
-				error: "Service currently unavailable due to server conditions",
-			});
+			if (
+				error.message.includes(
+					`No such container: ${req.session.socketId}`
+				)
+			) {
+				return respondWithError(
+					res,
+					403,
+					"Re-request using dockerConfig 0 because container has not been created"
+				);
+			}
+			return respondWithError(
+				res,
+				503,
+				"Service unavailable due to server conditions"
+			);
 		});
 };
 const handleConfigTwo = (req, res) => {
-	compileInCContainer(containerName, submissionFileName)
+	const containerName = req.body.socketId;
+	const submissionFileName = `${req.body.socketId}.c`;
+
+	const { socketInstance } = require("../server.js");
+
+	compileInCContainer(req, socketInstance)
 		.then(stdout => {
 			console.log(
 				`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 			);
-			execInCContainer(containerName)
-				.then(stdout => {
-					console.log(
-						`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
-					);
-					res.status(200).json({
-						output: stdout,
-					});
-				})
-				.catch(error => {
-					res.status(503).json({
-						error:
-							"Service currently unavailable due to server conditions",
-					});
-				});
+			return execInCContainer(req, socketInstance);
+		})
+		.then(stdout => {
+			console.log(
+				`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
+			);
+			res.status(200).json({
+				output: stdout,
+			});
 		})
 		.catch(error => {
-			res.status(503).json({
-				error: "Service currently unavailable due to server conditions",
-			});
+			if (
+				error.message.includes(
+					`No such container:path: ${req.session.socketId}:/usr/src`
+				)
+			) {
+				return respondWithError(
+					res,
+					403,
+					"Re-request using dockerConfig 0 or 1 because container has not been created or started"
+				);
+			}
+			return respondWithError(
+				res,
+				503,
+				"Service unavailable due to server conditions"
+			);
 		});
 };
 
 module.exports = (req, res) => {
-	generateSubmissionFile("hello-world.c", req.body.code)
+	generateSubmissionFile(req)
 		.then(() => {
 			const dockerConfig = parseInt(req.body.dockerConfig);
 			switch (dockerConfig) {
@@ -156,7 +116,8 @@ module.exports = (req, res) => {
 					break;
 			}
 		})
-		.catch(err => {
+		.catch(error => {
+			console.error(`error in dockerConfigController:`, error);
 			res.status(503).json({
 				error: "Service currently unavailable due to server conditions",
 			});

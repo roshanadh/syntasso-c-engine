@@ -1,6 +1,12 @@
 const { server, chai, mocha, should, expect } = require("./test-config.js");
 
 describe("Test GET /:", () => {
+	let socket, socketId;
+	before(async () => {
+		const { getConnection } = require("./test-config.js");
+		socket = await getConnection();
+		socketId = socket.id;
+	});
 	it("should GET Hello World message", done => {
 		chai.request(server)
 			.get("/")

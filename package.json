@@ -4,7 +4,7 @@
 	"description": "C compilation engine for Syntasso",
 	"main": "server.js",
 	"scripts": {
-		"test": "mocha $(find test -name '*.test.js') --sort --timeout 100000",
+		"test": "mocha $(find test -name '*.test.js') --sort --timeout 100000 --exit",
 		"start:dev": "nodemon server.js"
 	},
 	"repository": {
@@ -24,7 +24,14 @@
 	"homepage": "https://github.com/roshanadh/syntasso-c-engine#readme",
 	"dependencies": {
 		"body-parser": "^1.19.0",
-		"express": "^4.17.1"
+		"connect-redis": "^5.0.0",
+		"cors": "^2.8.5",
+		"crypto-random-string": "^3.2.0",
+		"express": "^4.17.1",
+		"express-session": "^1.17.1",
+		"redis": "^3.0.2",
+		"rimraf": "^3.0.2",
+		"socket.io": "^2.3.0"
 	},
 	"devDependencies": {
 		"chai": "^4.2.0",
@@ -32,6 +39,7 @@
 		"dotenv": "^8.2.0",
 		"mocha": "^8.0.1",
 		"nodemon": "^2.0.4",
-		"prettier": "2.0.5"
+		"prettier": "2.0.5",
+		"socket.io-client": "^2.3.0"
 	}
 }
