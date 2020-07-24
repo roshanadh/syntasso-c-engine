@@ -6,7 +6,7 @@ const {
 	compileInCContainer,
 	execInCContainer,
 } = require("../docker/index.js");
-const { respondWith503 } = require("../util/templateResponses.js");
+const { respondWithError } = require("../util/templateResponses.js");
 
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
@@ -23,7 +23,11 @@ const handleConfigZero = (req, res) => {
 			return handleConfigOne(req, res);
 		})
 		.catch(error => {
-			return respondWith503(res);
+			return respondWithError(
+				res,
+				503,
+				"Service unavailable due to server conditions"
+			);
 		});
 };
 const handleConfigOne = (req, res) => {
@@ -37,7 +41,22 @@ const handleConfigOne = (req, res) => {
 			return handleConfigTwo(req, res);
 		})
 		.catch(error => {
-			return respondWith503(res);
+			if (
+				error.message.includes(
+					`No such container: ${req.session.socketId}`
+				)
+			) {
+				return respondWithError(
+					res,
+					403,
+					"Re-request using dockerConfig 0 because container has not been created"
+				);
+			}
+			return respondWithError(
+				res,
+				503,
+				"Service unavailable due to server conditions"
+			);
 		});
 };
 const handleConfigTwo = (req, res) => {
@@ -62,7 +81,22 @@ const handleConfigTwo = (req, res) => {
 			});
 		})
 		.catch(error => {
-			return respondWith503(res);
+			if (
+				error.message.includes(
+					`No such container:path: ${req.session.socketId}:/usr/src`
+				)
+			) {
+				return respondWithError(
+					res,
+					403,
+					"Re-request using dockerConfig 0 or 1 because container has not been created or started"
+				);
+			}
+			return respondWithError(
+				res,
+				503,
+				"Service unavailable due to server conditions"
+			);
 		});
 };
 
