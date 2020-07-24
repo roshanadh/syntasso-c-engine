@@ -1,5 +1,5 @@
-module.exports.respondWith503 = res => {
+module.exports.respondWithError = (res, code, errorMessage) => {
 	res.status(503).json({
-		error: "Service currently unavailable due to server conditions",
+		error: errorMessage,
 	});
 };

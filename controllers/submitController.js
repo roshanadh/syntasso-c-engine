@@ -3,7 +3,7 @@ const {
 	codeValidator,
 	dockerConfigValidator,
 } = require("../middlewares/paramValidator.js");
-const { respondWith503 } = require("../util/templateResponses");
+const { respondWithError } = require("../util/templateResponses");
 const { initDirectories } = require("../filesystem/index.js");
 
 module.exports = (req, res, next) => {
@@ -42,6 +42,10 @@ module.exports = (req, res, next) => {
 	initDirectories(req.session.socketId)
 		.then(() => next())
 		.catch(error => {
-			respondWith503(res);
+			respondWithError(
+				res,
+				503,
+				"Service unavailable due to server conditions"
+			);
 		});
 };
