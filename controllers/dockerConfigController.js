@@ -10,50 +10,17 @@ const { respondWith503 } = require("../util/templateResponses.js");
 
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
-	const submissionFileName = `${req.body.socketId}.c`;
 
 	const { socketInstance } = require("../server.js");
 
 	buildCImage(req, socketInstance)
 		.then(stdout => {
 			console.log("C image built.");
-			createCContainer(req, socketInstance)
-				.then(stdout => {
-					console.log(`C container ${containerName} created.`);
-					startCContainer(req, socketInstance)
-						.then(stdout => {
-							console.log(
-								`C container ${containerName} started.`
-							);
-							compileInCContainer(req, socketInstance)
-								.then(stdout => {
-									console.log(
-										`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
-									);
-									execInCContainer(req, socketInstance)
-										.then(stdout => {
-											console.log(
-												`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
-											);
-											res.status(200).json({
-												output: stdout,
-											});
-										})
-										.catch(error => {
-											return respondWith503(res);
-										});
-								})
-								.catch(error => {
-									return respondWith503(res);
-								});
-						})
-						.catch(error => {
-							return respondWith503(res);
-						});
-				})
-				.catch(error => {
-					return respondWith503(res);
-				});
+			return createCContainer(req, socketInstance);
+		})
+		.then(stdout => {
+			console.log(`C container ${containerName} created.`);
+			return handleConfigOne(req, res);
 		})
 		.catch(error => {
 			return respondWith503(res);
@@ -61,34 +28,13 @@ const handleConfigZero = (req, res) => {
 };
 const handleConfigOne = (req, res) => {
 	const containerName = req.body.socketId;
-	const submissionFileName = `${req.body.socketId}.c`;
 
 	const { socketInstance } = require("../server.js");
 
 	startCContainer(req, socketInstance)
 		.then(stdout => {
 			console.log(`C container ${containerName} started.`);
-			compileInCContainer(req, socketInstance)
-				.then(stdout => {
-					console.log(
-						`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
-					);
-					execInCContainer(req, socketInstance)
-						.then(stdout => {
-							console.log(
-								`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
-							);
-							res.status(200).json({
-								output: stdout,
-							});
-						})
-						.catch(error => {
-							return respondWith503(res);
-						});
-				})
-				.catch(error => {
-					return respondWith503(res);
-				});
+			return handleConfigTwo(req, res);
 		})
 		.catch(error => {
 			return respondWith503(res);
@@ -105,18 +51,15 @@ const handleConfigTwo = (req, res) => {
 			console.log(
 				`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 			);
-			execInCContainer(req, socketInstance)
-				.then(stdout => {
-					console.log(
-						`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
-					);
-					res.status(200).json({
-						output: stdout,
-					});
-				})
-				.catch(error => {
-					return respondWith503(res);
-				});
+			return execInCContainer(req, socketInstance);
+		})
+		.then(stdout => {
+			console.log(
+				`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
+			);
+			res.status(200).json({
+				output: stdout,
+			});
 		})
 		.catch(error => {
 			return respondWith503(res);
