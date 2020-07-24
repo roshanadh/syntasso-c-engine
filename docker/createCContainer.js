@@ -24,12 +24,14 @@ module.exports = (req, socketInstance) => {
 						(error, stdout, stderr) => {
 							if (error) {
 								console.error(
-									`error during C container creation: ${error}`
+									`error during C container creation:`,
+									error
 								);
 								return reject(error);
 							} else if (stderr) {
 								console.error(
-									`stderr during C container creation: ${stderr}`
+									`stderr during C container creation:`,
+									stderr
 								);
 								return reject(stderr);
 							}
@@ -50,6 +52,9 @@ module.exports = (req, socketInstance) => {
 				.catch(error => {
 					reject(error);
 				});
-		} catch (error) {}
+		} catch (error) {
+			console.log(`error during createCContainer:`, error);
+			return reject(error);
+		}
 	});
 };

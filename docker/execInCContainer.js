@@ -18,7 +18,8 @@ module.exports = (req, socketInstance) => {
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
-							`error while executing submission inside container ${containerName}: ${error}`
+							`error while executing submission inside container ${containerName}:`,
+							error
 						);
 						socketInstance.instance
 							.to(socketId)
@@ -28,7 +29,8 @@ module.exports = (req, socketInstance) => {
 						return reject(error);
 					} else if (stderr) {
 						console.error(
-							`stderr while executing submission inside container ${containerName}: ${stderr}`
+							`stderr while executing submission inside container ${containerName}:`,
+							stderr
 						);
 						socketInstance.instance
 							.to(socketId)

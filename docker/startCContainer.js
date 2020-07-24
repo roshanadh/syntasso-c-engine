@@ -16,12 +16,14 @@ module.exports = (req, socketInstance) => {
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
-							`error while starting container ${containerName}: ${error}`
+							`error while starting container ${containerName}:`,
+							error
 						);
 						return reject(error);
 					} else if (stderr) {
 						console.error(
-							`stderr while starting container ${containerName}: ${stderr}`
+							`stderr while starting container ${containerName}:`,
+							stderr
 						);
 						return reject(stderr);
 					}
@@ -38,7 +40,7 @@ module.exports = (req, socketInstance) => {
 				}
 			);
 		} catch (error) {
-			console.log(`error during startCContainer: ${error}`);
+			console.log(`error during startCContainer:`, error);
 			return reject(error);
 		}
 	});

@@ -16,16 +16,16 @@ module.exports = (req, socketInstance) => {
 				(error, stdout, stderr) => {
 					if (error) {
 						_error = error;
-						console.error(`error during C image build: ${error}`);
+						console.error(`error during C image build:`, error);
 						socketInstance.instance
 							.to(socketId)
 							.emit("docker-app-stdout", {
-								stdout: `error during C image build: ${error}`,
+								stdout: `error during C image build`,
 							});
 						return reject(error);
 					} else if (stderr) {
 						_stderr = stderr;
-						console.error(`stderr during C image build: ${stderr}`);
+						console.error(`stderr during C image build:`, stderr);
 						socketInstance.instance
 							.to(socketId)
 							.emit("docker-app-stdout", {

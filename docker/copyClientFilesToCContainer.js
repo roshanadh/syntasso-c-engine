@@ -24,7 +24,8 @@ module.exports = (req, socketInstance) => {
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
-							`error while copying client files to container ${containerName}: ${error}`
+							`error while copying client files to container ${containerName}:`,
+							error
 						);
 						socketInstance.instance
 							.to(socketId)
@@ -34,7 +35,8 @@ module.exports = (req, socketInstance) => {
 						return reject(error);
 					} else if (stderr) {
 						console.error(
-							`stderr while copying client files to container ${containerName}: ${stderr}`
+							`stderr while copying client files to container ${containerName}:`,
+							stderr
 						);
 						socketInstance.instance
 							.to(socketId)

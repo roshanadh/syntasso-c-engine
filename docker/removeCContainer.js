@@ -18,7 +18,8 @@ module.exports = socketId => {
 							)
 						) {
 							console.error(
-								`error while removing container ${containerName}: ${error}`
+								`error while removing container ${containerName}:`,
+								error
 							);
 							return reject(error);
 						} else {
@@ -32,7 +33,8 @@ module.exports = socketId => {
 						!stderr.includes(`No such container: ${containerName}`)
 					) {
 						console.error(
-							`stderr while removing container ${containerName}: ${stderr}`
+							`stderr while removing container ${containerName}:`,
+							stderr
 						);
 						return reject(stderr);
 					}
