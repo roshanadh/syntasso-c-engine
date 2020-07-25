@@ -4,6 +4,17 @@ const { writeOutputToFile } = require("../filesystem/index.js");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
+		/*
+		 * @resolve
+		 * Always resolve the stdout as resolve(stdout)
+		 *
+		 * @reject
+		 * Reject the error and stderr values as keys in a JSON object ...
+		 * ... that is, as reject({ error }) and reject({ stderr })
+		 * This is because when catching rejections with .catch(error) in ...
+		 * ... dockerConfigController's functions, we can see if the caught error ...
+		 * ... is an error or an stderr with if (error.error) and if (error.stderr)
+		 */
 		try {
 			const { socketId } = req.body;
 			const containerName = socketId;
@@ -28,7 +39,7 @@ module.exports = (req, socketInstance) => {
 							.emit("docker-app-stdout", {
 								stdout: `error while executing submission`,
 							});
-						return reject(error);
+						return reject({ error });
 					} else if (stderr) {
 						console.error(
 							`stderr while executing submission inside container ${containerName}:`,
@@ -39,7 +50,7 @@ module.exports = (req, socketInstance) => {
 							.emit("docker-app-stdout", {
 								stdout: `stderr while executing submission: ${stderr}`,
 							});
-						return reject(stderr);
+						return reject({ stderr });
 					}
 					console.log(
 						`stdout while executing submission inside container ${containerName}: ${stdout}`
@@ -53,13 +64,13 @@ module.exports = (req, socketInstance) => {
 					writeOutputToFile(socketId, stdout)
 						.then(() => resolve(stdout))
 						.catch(error => {
-							return reject(error);
+							return reject({ error });
 						});
 				}
 			);
 		} catch (error) {
 			console.log(`error during execInCContainer:`, error);
-			return reject(error);
+			return reject({ error });
 		}
 	});
 };
