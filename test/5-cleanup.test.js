@@ -4,7 +4,7 @@ const { execSync } = require("child_process");
 
 const { mocha, chai, should, expect } = require("./test-config.js");
 
-describe("5. Clean up files after socket disconnect", () => {
+describe("Test socket disconnection and cleanup:", () => {
 	let socket, socketId, tempFilesPath, outputFilePath;
 	before(async () => {
 		const { removeConnection } = require("./test-config.js");
