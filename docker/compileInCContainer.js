@@ -4,6 +4,17 @@ const copyClientFilesToCContainer = require("./copyClientFilesToCContainer");
 
 const compileSubmission = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
+		/*
+		 * @resolve
+		 * Always resolve the stdout as resolve(stdout)
+		 *
+		 * @reject
+		 * Reject the error and stderr values as keys in a JSON object ...
+		 * ... that is, as reject({ error }) and reject({ stderr })
+		 * This is because when catching rejections with .catch(error) in ...
+		 * ... dockerConfigController's functions, we can see if the caught error ...
+		 * ... is an error or an stderr with if (error.error) and if (error.stderr)
+		 */
 		try {
 			const { socketId } = req.body;
 			const containerName = socketId;
@@ -19,7 +30,22 @@ const compileSubmission = (req, socketInstance) => {
 			exec(
 				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission`,
 				(error, stdout, stderr) => {
-					if (error) {
+					// compilation error is received as error as well as an stderr
+					if (stderr) {
+						console.error(
+							`stderr while compiling submission inside container ${containerName}:`,
+							stderr
+						);
+						socketInstance.instance
+							.to(socketId)
+							.emit("docker-app-stdout", {
+								stdout: `stderr while compiling submission: ${stderr}`,
+							});
+						return reject({
+							stderr,
+							errorType: "compilation-error",
+						});
+					} else if (error) {
 						console.error(
 							`error while compiling submission inside container ${containerName}:`,
 							error
@@ -30,18 +56,7 @@ const compileSubmission = (req, socketInstance) => {
 								stdout: `error while compiling submission`,
 							});
 
-						return reject(error);
-					} else if (stderr) {
-						console.error(
-							`stderr while compiling submission inside container ${containerName}:`,
-							stderr
-						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `stderr while compiling submission: ${stderr}`,
-							});
-						return reject(stderr);
+						return reject({ error });
 					}
 					if (stdout.trim() !== "") {
 						console.log(
@@ -63,7 +78,7 @@ const compileSubmission = (req, socketInstance) => {
 			);
 		} catch (error) {
 			console.log(`error during compileInCContainer: ${error}`);
-			return reject(error);
+			return reject({ error });
 		}
 	});
 };
@@ -72,15 +87,14 @@ module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
 		copyClientFilesToCContainer(req, socketInstance)
 			.then(stdout => {
-				compileSubmission(req, socketInstance)
-					.then(stdout => {
-						return resolve(stdout);
-					})
-					.catch(error => {
-						return reject(error);
-					});
+				return compileSubmission(req, socketInstance);
+			})
+			.then(stdout => {
+				return resolve(stdout);
 			})
 			.catch(error => {
+				// return reject(error) and not reject({ error }) because ...
+				// ... at this point, error is already an object
 				return reject(error);
 			});
 	});
