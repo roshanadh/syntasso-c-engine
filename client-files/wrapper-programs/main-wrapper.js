@@ -4,9 +4,9 @@ let output;
 const submission = exec("./submission");
 
 submission.stdout.on("data", stdout => {
-	process.stdout.write(stdout);
+	process.stdout.write(JSON.stringify({ stdout }));
 });
 
 submission.stderr.on("data", stderr => {
-	process.stderr.write(stderr);
+	process.stderr.write(JSON.stringify({ stderr }));
 });
