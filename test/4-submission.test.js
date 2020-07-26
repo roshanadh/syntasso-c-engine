@@ -21,6 +21,9 @@ describe("Test submission programs at /submit:", () => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
 					res.body.errorType.should.equal("compilation-error");
+					res.body.error.should.be.a("object");
+					expect(res.body.error.lineNumber).to.not.be.NaN;
+					expect(res.body.error.columnNumber).to.not.be.NaN;
 					done();
 				});
 		});
