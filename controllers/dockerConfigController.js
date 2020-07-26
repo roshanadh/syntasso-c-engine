@@ -109,6 +109,16 @@ const handleConfigTwo = (req, res) => {
 						stderr,
 						req.session.socketId
 					);
+
+					// check if compilationErrorParser had any errors during parsing
+					if (parsedError.errorInParser) {
+						return respondWithError(
+							res,
+							503,
+							"Service unavailable due to server conditions"
+						);
+					}
+					// if no error occurred during parsing, respond with the parsed error
 					return res.status(200).json({
 						errorType: error.errorType,
 						error: parsedError,
