@@ -7,6 +7,7 @@ const {
 	execInCContainer,
 } = require("../docker/index.js");
 const { respondWithError } = require("../util/templateResponses.js");
+const compilationErrorParser = require("../util/compilationErrorParser.js");
 
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
@@ -104,9 +105,13 @@ const handleConfigTwo = (req, res) => {
 					error.errorType &&
 					error.errorType === "compilation-error"
 				) {
+					parsedError = compilationErrorParser(
+						stderr,
+						req.session.socketId
+					);
 					return res.status(200).json({
 						errorType: error.errorType,
-						error: stderr,
+						error: parsedError,
 					});
 				}
 			}
