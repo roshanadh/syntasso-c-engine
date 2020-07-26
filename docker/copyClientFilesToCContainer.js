@@ -32,7 +32,7 @@ module.exports = (req, socketInstance) => {
 							.emit("docker-app-stdout", {
 								stdout: `error while copying client files`,
 							});
-						return reject(error);
+						return reject({ error });
 					} else if (stderr) {
 						console.error(
 							`stderr while copying client files to container ${containerName}:`,
@@ -43,7 +43,7 @@ module.exports = (req, socketInstance) => {
 							.emit("docker-app-stdout", {
 								stdout: `stderr while copying client files: ${stderr}`,
 							});
-						return reject(stderr);
+						return reject({ stderr });
 					}
 					if (stdout.trim() !== "")
 						console.log(
@@ -59,7 +59,7 @@ module.exports = (req, socketInstance) => {
 			);
 		} catch (error) {
 			console.log(`error during copySubmissionToCContainer:`, error);
-			return reject(error);
+			return reject({ error });
 		}
 	});
 };

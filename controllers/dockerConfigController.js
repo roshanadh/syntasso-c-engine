@@ -7,6 +7,7 @@ const {
 	execInCContainer,
 } = require("../docker/index.js");
 const { respondWithError } = require("../util/templateResponses.js");
+const compilationErrorParser = require("../util/compilationErrorParser.js");
 
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
@@ -41,17 +42,27 @@ const handleConfigOne = (req, res) => {
 			return handleConfigTwo(req, res);
 		})
 		.catch(error => {
-			if (
-				error.message.includes(
-					`No such container: ${req.session.socketId}`
-				)
-			) {
-				return respondWithError(
-					res,
-					403,
-					"Re-request using dockerConfig 0 because container has not been created"
-				);
+			// caught error may be an error or an stderr rejected by ...
+			// ... any of the docker API functions
+			// if (error.error) => True, it is an error
+			// if (error.stderr) => True, it is an stderr
+
+			// handle error
+			if (error.error) {
+				let err = error.error;
+				if (
+					err.message.includes(
+						`No such container: ${req.session.socketId}`
+					)
+				) {
+					return respondWithError(
+						res,
+						403,
+						"Re-request using dockerConfig 0 because container has not been created"
+					);
+				}
 			}
+
 			return respondWithError(
 				res,
 				503,
@@ -77,21 +88,60 @@ const handleConfigTwo = (req, res) => {
 				`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
 			);
 			res.status(200).json({
-				output: stdout,
+				output: JSON.parse(stdout).stdout,
 			});
 		})
 		.catch(error => {
-			if (
-				error.message.includes(
-					`No such container:path: ${req.session.socketId}:/usr/src`
-				)
-			) {
-				return respondWithError(
-					res,
-					403,
-					"Re-request using dockerConfig 0 or 1 because container has not been created or started"
-				);
+			// caught error may be an error or an stderr rejected by ...
+			// ... any of the docker API functions
+			// if (error.error) => True, it is an error
+			// if (error.stderr) => True, it is an stderr
+
+			// handle stderr
+			if (error.stderr) {
+				let { stderr } = error;
+				// check if compilation error
+				if (
+					error.errorType &&
+					error.errorType === "compilation-error"
+				) {
+					parsedError = compilationErrorParser(
+						stderr,
+						req.session.socketId
+					);
+
+					// check if compilationErrorParser had any errors during parsing
+					if (parsedError.errorInParser) {
+						return respondWithError(
+							res,
+							503,
+							"Service unavailable due to server conditions"
+						);
+					}
+					// if no error occurred during parsing, respond with the parsed error
+					return res.status(200).json({
+						errorType: error.errorType,
+						error: parsedError,
+					});
+				}
 			}
+
+			// handle error
+			if (error.error) {
+				let err = error.error;
+				if (
+					err.message.includes(
+						`No such container:path: ${req.session.socketId}:/usr/src`
+					)
+				) {
+					return respondWithError(
+						res,
+						403,
+						"Re-request using dockerConfig 0 or 1 because container has not been created or started"
+					);
+				}
+			}
+
 			return respondWithError(
 				res,
 				503,
