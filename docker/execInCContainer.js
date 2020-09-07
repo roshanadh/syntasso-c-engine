@@ -41,6 +41,7 @@ module.exports = (req, socketInstance) => {
 							});
 						return reject({ error });
 					} else if (stderr) {
+						stderr = JSON.parse(stderr);
 						console.error(
 							`stderr while executing submission inside container ${containerName}:`,
 							stderr
@@ -50,7 +51,10 @@ module.exports = (req, socketInstance) => {
 							.emit("docker-app-stdout", {
 								stdout: `stderr while executing submission: ${stderr}`,
 							});
-						return reject({ stderr });
+						return reject({
+							stderr: stderr.stderr,
+							errorType: "runtime-error",
+						});
 					}
 					console.log(
 						`stdout while executing submission inside container ${containerName}: ${stdout}`
