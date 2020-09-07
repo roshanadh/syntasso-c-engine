@@ -109,6 +109,18 @@ const handleConfigTwo = (req, res) => {
 						stderr,
 						req.session.socketId
 					);
+					// check if compilationErrorParser detected a Linker Error
+					if (
+						parsedError.newErrorType &&
+						parsedError.newErrorType === "linker-error"
+					) {
+						return res.status(200).json({
+							errorType: parsedError.newErrorType,
+							error: {
+								errorStack: parsedError.errorStack,
+							},
+						});
+					}
 
 					// check if compilationErrorParser had any errors during parsing
 					if (parsedError.errorInParser) {
