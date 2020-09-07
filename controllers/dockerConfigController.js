@@ -123,6 +123,15 @@ const handleConfigTwo = (req, res) => {
 						errorType: error.errorType,
 						error: parsedError,
 					});
+				} else if (
+					// check if runtime error
+					error.errorType &&
+					error.errorType === "runtime-error"
+				) {
+					return res.status(200).json({
+						errorType: error.errorType,
+						error: error.stderr,
+					});
 				}
 			}
 
