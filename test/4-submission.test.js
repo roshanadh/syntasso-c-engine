@@ -8,7 +8,7 @@ describe("Test submission programs at /submit:", () => {
 		socketId = socket.id;
 	});
 	describe("Compilation error tests:", () => {
-		it("should respond with errorType = compilation-error", done => {
+		it("should respond with errorType = compilation-error for syntax error", done => {
 			const payload = {
 				socketId,
 				code: `#include<stdio.h>\nint main() {\nprintf("Hello World!")\n}`,
@@ -24,6 +24,58 @@ describe("Test submission programs at /submit:", () => {
 					res.body.error.should.be.a("object");
 					expect(res.body.error.lineNumber).to.not.be.NaN;
 					expect(res.body.error.columnNumber).to.not.be.NaN;
+					done();
+				});
+		});
+		it("should respond with errorType = compilation-error for mis-linked library", done => {
+			const payload = {
+				socketId,
+				code: `#include<stdio>
+						int main()
+						{
+							return 0;
+						}
+					`,
+				dockerConfig: "2",
+			};
+			chai.request(server)
+				.post("/submit")
+				.send(payload)
+				.end((err, res) => {
+					expect(err).to.be.null;
+					res.body.should.be.a("object");
+					res.body.errorType.should.equal("compilation-error");
+					res.body.error.should.be.a("object");
+					expect(res.body.error.lineNumber).to.not.be.NaN;
+					expect(res.body.error.columnNumber).to.not.be.NaN;
+					done();
+				});
+		});
+	});
+
+	describe("Linker error tests:", () => {
+		it("should respond with errorType = linker-error", done => {
+			const payload = {
+				socketId,
+				code: `#include "stdio.h"
+						void Foo();
+						int main()
+						{
+							Foo();
+							return 0;
+						}
+						void foo(){}
+					`,
+				dockerConfig: "2",
+			};
+			chai.request(server)
+				.post("/submit")
+				.send(payload)
+				.end((err, res) => {
+					expect(err).to.be.null;
+					res.body.should.be.a("object");
+					res.body.errorType.should.equal("linker-error");
+					res.body.error.should.be.a("object");
 					done();
 				});
 		});
