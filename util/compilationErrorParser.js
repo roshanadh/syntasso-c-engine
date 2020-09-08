@@ -57,9 +57,6 @@ module.exports = (error, socketId) => {
 				// it is a Linker Error
 				errorMessage = columnNumber.trim().split("\n")[0];
 				newErrorType = "linker-error";
-				console.dir({
-					errorMessage,
-				});
 				// returning a newErrorType key will indicate to dockerConfigController that ...
 				// ... a new error type was detected while parsing and it will override the ...
 				// ... default 'compilation-error' error type
