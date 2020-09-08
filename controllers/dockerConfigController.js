@@ -117,6 +117,9 @@ const handleConfigTwo = (req, res) => {
 						return res.status(200).json({
 							errorType: parsedError.newErrorType,
 							error: {
+								errorMessage: parsedError.errorMessage
+									? parsedError.errorMessage
+									: null,
 								errorStack: parsedError.errorStack,
 							},
 						});
