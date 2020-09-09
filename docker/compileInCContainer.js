@@ -2,18 +2,35 @@ const { exec } = require("child_process");
 
 const copyClientFilesToCContainer = require("./copyClientFilesToCContainer");
 
-const isGCCWarning = (stderr, socketId) => {
+const isFatalGCCWarning = (stderr, socketId) => {
 	/*
-	 * sample GCC warning:
+	 * sample Non-Fatal GCC warning:
 	 * s-6353b6540a377d1610.c: In function 'main':
 	 * s-6353b6540a377d1610.c:5:1: warning: implicit declaration of function 'foo' [-Wimplicit-function-declaration]
 	 *  foo();
 	 *  ^~~
+	 *
+	 * sample Fatal GCC Warning (Note the presence of 'error: ld returned 1 exit status'):
+	 * s-ee6c8ccce6346b4029.c: In function 'main':
+	 * s-ee6c8ccce6346b4029.c:4:1: warning: implicit declaration of function 'foo' [-Wimplicit-function-declaration]
+	 *  foo();
+	 *  ^~~
+	 * /tmp/ccGdbOBN.o: In function `main':
+	 * s-ee6c8ccce6346b4029.c:(.text+0x1b): undefined reference to `foo'
+	 * collect2: error: ld returned 1 exit status
 	 */
 	// search for the substring sample: 's-6353b6540a377d1610.c:5:1: warning: '
-	const regex = new RegExp(`(${socketId}.c:\\d:\\d: warning: )`);
-	const index = stderr.search(regex);
-	return index !== -1 ? true : false;
+	const warningRegex = new RegExp(`(${socketId}.c:\\d:\\d: warning: )`);
+	const indexOfWarning = stderr.search(warningRegex);
+
+	// search for the substring sample: 'error: ld returned 1 exit status'
+	const exitStatusRegex = /(error: ld returned \d exit status)/;
+	const indexOfExitStatus = stderr.search(exitStatusRegex);
+
+	return {
+		isWarning: indexOfWarning !== -1 ? true : false,
+		isFatalWarning: indexOfExitStatus !== -1 ? true : false,
+	};
 };
 
 const compileSubmission = (req, socketInstance) => {
@@ -61,20 +78,26 @@ const compileSubmission = (req, socketInstance) => {
 						 * In such a case, resolve stderr as stdout
 						 */
 						//  check if stderr is a warning
-						if (isGCCWarning(stderr, socketId)) {
+						const { isWarning, isFatalWarning } = isFatalGCCWarning(
+							stderr,
+							socketId
+						);
+						if (isWarning && !isFatalWarning) {
 							socketInstance.instance
 								.to(socketId)
 								.emit("docker-app-stdout", {
 									stdout: `warning while compiling submission: ${stderr}`,
 								});
-							resolve(stderr);
+							return resolve(stderr);
 						} else {
+							// this block executes if the warning is fatal or if there's ...
+							// ... no warning in the stderr
 							socketInstance.instance
 								.to(socketId)
 								.emit("docker-app-stdout", {
 									stdout: `stderr while compiling submission: ${stderr}`,
 								});
-							reject({
+							return reject({
 								stderr,
 								errorType: "compilation-error",
 							});
