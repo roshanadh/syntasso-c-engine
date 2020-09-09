@@ -41,8 +41,6 @@ const compileSubmission = (req, socketInstance) => {
 				stdout: `Compiling user's submission...`,
 			});
 
-			// compile using the -Werror flag that makes all GCC warnings into errors
-			// for more options, see https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 			exec(
 				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission`,
 				(error, stdout, stderr) => {
