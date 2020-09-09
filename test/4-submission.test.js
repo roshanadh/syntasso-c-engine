@@ -51,6 +51,25 @@ describe("Test submission programs at /submit:", () => {
 					done();
 				});
 		});
+		it("should respond with errorType = compilation-error for fatal implicit-function-declaration warning", done => {
+			const payload = {
+				socketId,
+				code: `#include<stdio.h>\nint main(){\nfoo();\n}`,
+				dockerConfig: "2",
+			};
+			chai.request(server)
+				.post("/submit")
+				.send(payload)
+				.end((err, res) => {
+					expect(err).to.be.null;
+					res.body.should.be.a("object");
+					res.body.errorType.should.equal("compilation-error");
+					res.body.error.should.be.a("object");
+					expect(res.body.error.lineNumber).to.not.be.NaN;
+					expect(res.body.error.columnNumber).to.not.be.NaN;
+					done();
+				});
+		});
 	});
 
 	describe("Linker error tests:", () => {
