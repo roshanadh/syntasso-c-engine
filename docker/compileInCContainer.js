@@ -58,8 +58,10 @@ const compileSubmission = (req, socketInstance) => {
 				stdout: `Compiling user's submission...`,
 			});
 
+			// compile submission using -Wall flag that enables some warnings
+			// check more GCC warning options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 			exec(
-				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission`,
+				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission -Wall`,
 				(error, stdout, stderr) => {
 					// compilation error is received as error as well as an stderr
 					if (stderr) {
@@ -90,6 +92,7 @@ const compileSubmission = (req, socketInstance) => {
 								.emit("docker-app-stdout", {
 									stdout: `warning while compiling submission: ${stderr}`,
 								});
+							// if the warning is not fatal, resolve the warning
 							return resolve({ warning: stderr });
 						} else {
 							// this block executes if the warning is fatal or if there's ...
