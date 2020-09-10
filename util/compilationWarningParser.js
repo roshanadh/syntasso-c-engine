@@ -51,7 +51,8 @@ module.exports = (stderr, socketId) => {
 				.split("\n")[0];
 
 			fullWarning =
-				// if current item is the last entry in matches array
+				// if current item is the last entry in matches array, ...
+				// ... no need to specify the end index for substring
 				i === matches.length - 1
 					? stderr.substring(matches[i].index)
 					: stderr.substring(matches[i].index, matches[i + 1].index);
