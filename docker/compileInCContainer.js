@@ -20,7 +20,7 @@ const isFatalGCCWarning = (stderr, socketId) => {
 	 * collect2: error: ld returned 1 exit status
 	 */
 	// search for the substring sample: 's-6353b6540a377d1610.c:5:1: warning: '
-	const warningRegex = new RegExp(`(${socketId}.c:\\d:\\d: warning: )`);
+	const warningRegex = new RegExp(`(${socketId}.c:\\d+:\\d+: warning: )`);
 	const indexOfWarning = stderr.search(warningRegex);
 
 	// search for the substring sample: 'error: ld returned 1 exit status'
@@ -90,7 +90,7 @@ const compileSubmission = (req, socketInstance) => {
 								.emit("docker-app-stdout", {
 									stdout: `warning while compiling submission: ${stderr}`,
 								});
-							return resolve(stderr);
+							return resolve({ warning: stderr });
 						} else {
 							// this block executes if the warning is fatal or if there's ...
 							// ... no warning in the stderr
