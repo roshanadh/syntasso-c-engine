@@ -99,4 +99,24 @@ describe("Test submission programs at /submit:", () => {
 				});
 		});
 	});
+
+	describe("Runtime error tests:", () => {
+		it("should respond with errorType = linker-error", done => {
+			const payload = {
+				socketId,
+				code: `#include "stdio.h"\nint main(){\nint a = 10 / 0;\nreturn 0;\n}`,
+				dockerConfig: "2",
+			};
+			chai.request(server)
+				.post("/submit")
+				.send(payload)
+				.end((err, res) => {
+					expect(err).to.be.null;
+					res.body.should.be.a("object");
+					res.body.error.should.be.a("object");
+					res.body.error.type.should.equal("runtime-error");
+					done();
+				});
+		});
+	});
 });
