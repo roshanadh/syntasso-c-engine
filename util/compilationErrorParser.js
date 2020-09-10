@@ -56,12 +56,11 @@ module.exports = (error, socketId) => {
 			if (lineNumber.includes(".text+0x")) {
 				// it is a Linker Error
 				errorMessage = columnNumber.trim().split("\n")[0];
-				newErrorType = "linker-error";
 				// returning a newErrorType key will indicate to dockerConfigController that ...
 				// ... a new error type was detected while parsing and it will override the ...
 				// ... default 'compilation-error' error type
 				return {
-					newErrorType,
+					type: "linker-error",
 					errorMessage,
 					errorStack,
 				};
@@ -74,6 +73,7 @@ module.exports = (error, socketId) => {
 			}
 		} else {
 			return {
+				type: "compilation-error",
 				errorMessage,
 				lineNumber,
 				columnNumber,
@@ -98,6 +98,7 @@ module.exports = (error, socketId) => {
 				errorStack,
 			} = compilationTerminationParser(error);
 			return {
+				type: "compilation-error",
 				lineNumber,
 				columnNumber,
 				errorStack,
@@ -122,7 +123,7 @@ module.exports = (error, socketId) => {
 			}
 			// if it is a Linker Error, update errorType to say: linker-error
 			return {
-				newErrorType: "linker-error",
+				type: "linker-error",
 				errorMessage,
 				errorStack: error,
 			};
