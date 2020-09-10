@@ -20,8 +20,8 @@ describe("Test submission programs at /submit:", () => {
 				.end((err, res) => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
-					res.body.errorType.should.equal("compilation-error");
 					res.body.error.should.be.a("object");
+					res.body.error.type.should.equal("compilation-error");
 					expect(res.body.error.lineNumber).to.not.be.NaN;
 					expect(res.body.error.columnNumber).to.not.be.NaN;
 					done();
@@ -44,8 +44,8 @@ describe("Test submission programs at /submit:", () => {
 				.end((err, res) => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
-					res.body.errorType.should.equal("compilation-error");
 					res.body.error.should.be.a("object");
+					res.body.error.type.should.equal("compilation-error");
 					expect(res.body.error.lineNumber).to.not.be.NaN;
 					expect(res.body.error.columnNumber).to.not.be.NaN;
 					done();
@@ -63,8 +63,8 @@ describe("Test submission programs at /submit:", () => {
 				.end((err, res) => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
-					res.body.errorType.should.equal("compilation-error");
 					res.body.error.should.be.a("object");
+					res.body.error.type.should.equal("compilation-error");
 					expect(res.body.error.lineNumber).to.not.be.NaN;
 					expect(res.body.error.columnNumber).to.not.be.NaN;
 					done();
@@ -93,8 +93,8 @@ describe("Test submission programs at /submit:", () => {
 				.end((err, res) => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
-					res.body.errorType.should.equal("linker-error");
 					res.body.error.should.be.a("object");
+					res.body.error.type.should.equal("linker-error");
 					done();
 				});
 		});
