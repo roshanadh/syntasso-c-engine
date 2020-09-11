@@ -78,7 +78,7 @@ const compileSubmission = (req, socketInstance) => {
 						 *  ^~~
 						 *
 						 * In such a case, resolve stderr as stdout
-						 * However, if stderr is not a warning, or if it is not fatal, ...
+						 * However, if stderr is not a warning, or if it is fatal, ...
 						 * ... reject the stderr
 						 */
 						//  check if stderr is a warning
