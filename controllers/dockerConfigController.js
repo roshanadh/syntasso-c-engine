@@ -8,6 +8,7 @@ const {
 } = require("../docker/index.js");
 const { respondWithError } = require("../util/templateResponses.js");
 const compilationErrorParser = require("../util/compilationErrorParser.js");
+const compilationWarningParser = require("../util/compilationWarningParser");
 
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
@@ -73,6 +74,7 @@ const handleConfigOne = (req, res) => {
 const handleConfigTwo = (req, res) => {
 	const containerName = req.body.socketId;
 	const submissionFileName = `${req.body.socketId}.c`;
+	let compilationWarnings = null;
 
 	const { socketInstance } = require("../server.js");
 
@@ -81,6 +83,13 @@ const handleConfigTwo = (req, res) => {
 			console.log(
 				`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 			);
+			// check if resolved stdout has any warning in it
+			if (stdout.warning) {
+				compilationWarnings = compilationWarningParser(
+					stdout.warning,
+					containerName
+				);
+			}
 			return execInCContainer(req, socketInstance);
 		})
 		.then(stdout => {
@@ -88,6 +97,7 @@ const handleConfigTwo = (req, res) => {
 				`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
 			);
 			res.status(200).json({
+				compilationWarnings,
 				output: JSON.parse(stdout).stdout,
 			});
 		})
@@ -124,6 +134,7 @@ const handleConfigTwo = (req, res) => {
 					}
 					// if no error occurred during parsing, respond with the parsed error
 					return res.status(200).json({
+						compilationWarnings,
 						error: {
 							...parsedError,
 						},
@@ -135,6 +146,7 @@ const handleConfigTwo = (req, res) => {
 				) {
 					// stderr was obtained during runtime
 					return res.status(200).json({
+						compilationWarnings,
 						error: {
 							type: error.errorType,
 							errorStack: error.stderr,
