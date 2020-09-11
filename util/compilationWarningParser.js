@@ -22,7 +22,7 @@ module.exports = (stderr, socketId) => {
 		let matches = [...stderr.matchAll(warningRegex)];
 
 		/*
-		 * At the end of this block, ...
+		 * At the end of this forEach block, ...
 		 * matches = [
 		 * 	{ header: 's-8f499484e8381f0725.c:3:12: warning: ', index: 44 },
 		 * 	{ header: 's-8f499484e8381f0725.c:3:5: warning: ', index: 145 }
