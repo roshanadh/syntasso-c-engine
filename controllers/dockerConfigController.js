@@ -148,7 +148,7 @@ const handleConfigTwo = (req, res) => {
 					return res.status(200).json({
 						compilationWarnings,
 						error: {
-							type: error.errorType,
+							errorType: error.errorType,
 							errorStack: error.stderr,
 						},
 					});
