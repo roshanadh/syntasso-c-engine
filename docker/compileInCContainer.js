@@ -1,37 +1,7 @@
 const { exec } = require("child_process");
 
 const copyClientFilesToCContainer = require("./copyClientFilesToCContainer");
-
-const isFatalGCCWarning = (stderr, socketId) => {
-	/*
-	 * sample Non-Fatal GCC warning:
-	 * s-6353b6540a377d1610.c: In function 'main':
-	 * s-6353b6540a377d1610.c:5:1: warning: implicit declaration of function 'foo' [-Wimplicit-function-declaration]
-	 *  foo();
-	 *  ^~~
-	 *
-	 * sample Fatal GCC Warning (Note the presence of 'error: ld returned 1 exit status'):
-	 * s-ee6c8ccce6346b4029.c: In function 'main':
-	 * s-ee6c8ccce6346b4029.c:4:1: warning: implicit declaration of function 'foo' [-Wimplicit-function-declaration]
-	 *  foo();
-	 *  ^~~
-	 * /tmp/ccGdbOBN.o: In function `main':
-	 * s-ee6c8ccce6346b4029.c:(.text+0x1b): undefined reference to `foo'
-	 * collect2: error: ld returned 1 exit status
-	 */
-	// search for the substring sample: 's-6353b6540a377d1610.c:5:1: warning: '
-	const warningRegex = new RegExp(`(${socketId}.c:\\d+:\\d+: warning: )`);
-	const indexOfWarning = stderr.search(warningRegex);
-
-	// search for the substring sample: 'error: ld returned 1 exit status'
-	const exitStatusRegex = /(error: ld returned \d exit status)/;
-	const indexOfExitStatus = stderr.search(exitStatusRegex);
-
-	return {
-		isWarning: indexOfWarning !== -1 ? true : false,
-		isFatalWarning: indexOfExitStatus !== -1 ? true : false,
-	};
-};
+const isFatalGCCWarning = require("../util/isFatalGCCWarning.js");
 
 const compileSubmission = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
@@ -61,7 +31,7 @@ const compileSubmission = (req, socketInstance) => {
 			// compile submission using -Wall flag that enables some warnings
 			// check more GCC warning options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
 			exec(
-				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission -Wall`,
+				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission -Wall -Wfatal-errors`,
 				(error, stdout, stderr) => {
 					// compilation error is received as error as well as an stderr
 					if (stderr) {
