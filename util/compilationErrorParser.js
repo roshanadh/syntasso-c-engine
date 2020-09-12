@@ -1,136 +1,101 @@
-const compilationTerminationParser = error => {
-	const splitError = error.split(":");
-	const lineNumber = splitError[0];
-	const columnNumber = splitError[1];
-	const errorStack = splitError.slice(2).join(":");
-	return {
-		lineNumber,
-		columnNumber,
-		errorStack,
-	};
+const checkForLinkerError = (stderr, socketId) => {
+	// check if there is an instance of Linker Error within stderr
+	try {
+		let linkerErrorRegex = new RegExp(
+			`(${socketId}.c:\\(.text\\+0x.+\\): )`
+		);
+		matchedString = stderr.match(linkerErrorRegex);
+		if (matchedString) {
+			// then such a Linker Error exists in stderr
+			let header = matchedString[0];
+			let index = matchedString.index;
+			// header = "s-02c34e5658faf8e781.c:(.text+0xa): "
+			let errorMessage = stderr
+				.substring(index + header.length)
+				.split("\n")[0];
+			return errorMessage;
+		}
+		return null;
+	} catch (err) {
+		console.error(`error in checkForLinkerError:`, err);
+		throw new Error(err);
+	}
 };
-
-module.exports = (error, socketId) => {
-	// Parses compilation error, compilation terminations, and linker errors
-
+module.exports = (stderr, socketId) => {
 	/*
-	 * compilation error sample:
-	 * 	s-c7f938d272062af924.c: In function 'main':
-	 *	s-c7f938d272062af924.c:3:1: error: expected declaration or statement at end of input
-	 *	printf("Hello World!");
-	 *	^~~~~~
+	 * Parse the stderr string object to extract;
+	 * lineNumber, columnNumber, errorMessage, errorStack, and errorType
+	 *
+	 * Note: Proceed with compilationErrorParser only if it has been detected ...
+	 * ... that there's indeed an error in stderr, that is to prevent any unforeseen ...
+	 * ... errors in this process
 	 */
 	try {
-		let errorMessage, lineNumber, columnNumber, errorStack;
-
-		errorStack = error;
-		// trim first occurrence of file name
-		error = errorStack.substring(
-			errorStack.indexOf(`${socketId}.c: `) + `${socketId}.c: `.length
-		);
-		// get line number and column number
-		lineNumber = error.toString().split(":")[2];
-		columnNumber = error.toString().split(":")[3];
-		// get error message
-		errorMessage = error.split(
-			`${socketId}.c:${lineNumber}:${columnNumber}: `
-		)[1];
-		// trim code portion from errorMessage
-		errorMessage = errorMessage.split("\n")[0];
-
-		// if any error hasn't been thrown up to here, it's a ...
-		// ... compilation error, so no need to update errorType
-
-		// if lineNumber or columnNumber are NaN, some error has occurred ...
-		// ... during parsing
-		if (isNaN(lineNumber) || isNaN(columnNumber)) {
+		let lineNumber = null,
+			columnNumber = null,
+			errorStack = stderr,
+			errorMessage = null,
+			errorType = "compilation-error";
+		// extract lineNumber and columnNumber by first ...
+		// searching for substring "s-02c34e5658faf8e781.c:5:2:"
+		let substringRegex = new RegExp(`(${socketId}.c:\\d+:\\d+: )`);
+		let matchedString = stderr.match(substringRegex);
+		if (matchedString) {
+			let header = matchedString[0];
+			// header = "s-02c34e5658faf8e781.c:5:2:"
+			let index = matchedString.index;
+			lineNumber = header.split(":")[1];
+			columnNumber = header.split(":")[2];
 			/*
-			 * this may be due to a Linker Error
-			 * Linker Errors may look like:
-			 * s-bf060be7a5b6ff7a93.c:(.text+0xa): undefined reference to `Foo'
-			 * collect2: error: ld returned 1 exit status
+			 * In a combined error stack, with warnings and Linker Errors, ...
+			 * a Linker Error message makes more sense to why compilation terminated ...
+			 * than a compilation warning message, so extract error message from within ...
+			 * a Linker Error, if it exists
 			 *
-			 * This Linker Error will be parsed with lineNumber = "(.text+0xa)" ...
-			 * ... and columnNumber =  undefined reference to `Foo'↵collect2"
+			 * Sample combined error stack:
+			 * s-02c34e5658faf8e781.c: In function 'main':
+			 * s-02c34e5658faf8e781.c:5:2: warning: implicit declaration of function 'Foo' [-Wimplicit-function-declaration]
+			 *   Foo();
+			 *   ^~~
+			 * /tmp/cciiFJPL.o: In function 'main':
+			 * s-02c34e5658faf8e781.c:(.text+0xa): undefined reference to 'Foo'
+			 * collect2: error: ld returned 1 exit status
 			 */
-			if (lineNumber.includes(".text+0x")) {
-				// it is a Linker Error
-				errorMessage = columnNumber.trim().split("\n")[0];
-				// returning a newErrorType key will indicate to dockerConfigController that ...
-				// ... a new error type was detected while parsing and it will override the ...
-				// ... default 'compilation-error' error type
-				return {
-					type: "linker-error",
-					errorMessage,
-					errorStack,
-				};
+			let errorMessageFromLinkerError = checkForLinkerError(
+				stderr,
+				socketId
+			);
+			if (errorMessageFromLinkerError) {
+				errorMessage = errorMessageFromLinkerError;
+				errorType = "linker-error";
 			} else {
-				console.error(
-					"New error type detected while parsing in compilationErrorParser:",
-					error
-				);
-				return { errorStack };
+				// use other error message as no Linker Error message exists in stderr
+				errorMessage = stderr
+					.substring(index + header.length)
+					.split("\n")[0];
 			}
 		} else {
-			return {
-				type: "compilation-error",
-				errorMessage,
-				lineNumber,
-				columnNumber,
-				errorStack,
-			};
-		}
-	} catch (caughtError) {
-		// check for any compilation terminations
-		/*
-		 * compilation termination sample:
-		 * s-081e82ab6dc36db601.c:1:16: fatal error: stdio: No such file or directory
-		 *	#include<stdio>
-		 *        			^
-		 *	compilation terminated.
-		 *
-		 */
-		if (error.includes("compilation terminated")) {
-			// this is an instance of compilation error
-			let {
-				lineNumber,
-				columnNumber,
-				errorStack,
-			} = compilationTerminationParser(error);
-			return {
-				type: "compilation-error",
-				lineNumber,
-				columnNumber,
-				errorStack,
-			};
-		}
-		// TODO:
-		// find an efficient way to detect Linker Errors
-		// "undefined reference to..." can be one of them
-
-		// check if it's a Linker Error as some Linker Errors cannot be ...
-		// ... parsed as above and throws an error in the process
-		if (error.includes("undefined reference to")) {
-			// "undefined reference to" is one of the most common ...
-			// ... Linker Errors
-			try {
-				errorMessage = error
-					.substring(error.indexOf("undefined reference to"))
-					.split("\n")[0];
-			} catch (err) {
-				console.error("Error while parsing errorMessage:", err);
-				errorMessage = null;
+			// there may not be a lineNumber or columnNumber in the stderr ...
+			// ... incase of some Linker Errors, so search for Linker Error
+			let errorMessageFromLinkerError = checkForLinkerError(
+				stderr,
+				socketId
+			);
+			if (errorMessageFromLinkerError) {
+				errorMessage = errorMessageFromLinkerError;
+				errorType = "linker-error";
 			}
-			// if it is a Linker Error, update errorType to say: linker-error
-			return {
-				type: "linker-error",
-				errorMessage,
-				errorStack: error,
-			};
 		}
-		console.error(`error in compilationErrorParser.js:`, caughtError);
 		return {
-			errorInParser: caughtError,
+			lineNumber,
+			columnNumber,
+			errorMessage,
+			errorStack,
+			errorType,
+		};
+	} catch (err) {
+		return {
+			errorInParser: err,
 		};
 	}
 };
