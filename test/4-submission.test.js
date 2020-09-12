@@ -21,7 +21,7 @@ describe("Test submission programs at /submit:", () => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
 					res.body.error.should.be.a("object");
-					res.body.error.type.should.equal("compilation-error");
+					res.body.error.errorType.should.equal("compilation-error");
 					expect(res.body.error.lineNumber).to.not.be.NaN;
 					expect(res.body.error.columnNumber).to.not.be.NaN;
 					done();
@@ -45,26 +45,7 @@ describe("Test submission programs at /submit:", () => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
 					res.body.error.should.be.a("object");
-					res.body.error.type.should.equal("compilation-error");
-					expect(res.body.error.lineNumber).to.not.be.NaN;
-					expect(res.body.error.columnNumber).to.not.be.NaN;
-					done();
-				});
-		});
-		it("should respond with errorType = compilation-error for fatal implicit-function-declaration warning", done => {
-			const payload = {
-				socketId,
-				code: `#include<stdio.h>\nint main(){\nfoo();\n}`,
-				dockerConfig: "2",
-			};
-			chai.request(server)
-				.post("/submit")
-				.send(payload)
-				.end((err, res) => {
-					expect(err).to.be.null;
-					res.body.should.be.a("object");
-					res.body.error.should.be.a("object");
-					res.body.error.type.should.equal("compilation-error");
+					res.body.error.errorType.should.equal("compilation-error");
 					expect(res.body.error.lineNumber).to.not.be.NaN;
 					expect(res.body.error.columnNumber).to.not.be.NaN;
 					done();
@@ -94,7 +75,26 @@ describe("Test submission programs at /submit:", () => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
 					res.body.error.should.be.a("object");
-					res.body.error.type.should.equal("linker-error");
+					res.body.error.errorType.should.equal("linker-error");
+					done();
+				});
+		});
+		it("should respond with errorType = linker-error for undefined reference to function", done => {
+			const payload = {
+				socketId,
+				code: `#include<stdio.h>\nint main(){\nfoo();\n}`,
+				dockerConfig: "2",
+			};
+			chai.request(server)
+				.post("/submit")
+				.send(payload)
+				.end((err, res) => {
+					expect(err).to.be.null;
+					res.body.should.be.a("object");
+					res.body.error.should.be.a("object");
+					res.body.error.errorType.should.equal("linker-error");
+					expect(res.body.error.lineNumber).to.not.be.NaN;
+					expect(res.body.error.columnNumber).to.not.be.NaN;
 					done();
 				});
 		});
@@ -114,7 +114,7 @@ describe("Test submission programs at /submit:", () => {
 					expect(err).to.be.null;
 					res.body.should.be.a("object");
 					res.body.error.should.be.a("object");
-					res.body.error.type.should.equal("runtime-error");
+					res.body.error.errorType.should.equal("runtime-error");
 					done();
 				});
 		});
