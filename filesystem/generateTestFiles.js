@@ -4,6 +4,7 @@ const path = require("path");
 module.exports = req => {
 	return new Promise(async (resolve, reject) => {
 		const { socketId, testCases } = req.body;
+		await require("./removeTestFiles.js")(socketId);
 		const sampleInputsDirPath = path.resolve(
 			__dirname,
 			"..",
