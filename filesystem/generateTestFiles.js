@@ -55,14 +55,14 @@ module.exports = req => {
 					try {
 						fs.writeFileSync(
 							sampleInputFilePath,
-							element.sampleInput
+							element.sampleInput.toString()
 						);
 						console.log(
 							`${socketId}-sampleInput-${index}.txt generated.`
 						);
 						fs.writeFileSync(
 							expectedOutputFilePath,
-							element.expectedOutput
+							element.expectedOutput.toString()
 						);
 						console.log(
 							`${socketId}-expectedOutput-${index}.txt generated.`
