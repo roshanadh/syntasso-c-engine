@@ -13,6 +13,7 @@ describe("Test submission programs at /submit:", () => {
 				socketId,
 				code: `#include<stdio.h>\nint main() {\nprintf("Hello World!")\n}`,
 				dockerConfig: "2",
+				testCases: [{ sampleInput: 0, expectedOutput: 0 }],
 			};
 			chai.request(server)
 				.post("/submit")
@@ -37,6 +38,7 @@ describe("Test submission programs at /submit:", () => {
 						}
 					`,
 				dockerConfig: "2",
+				testCases: [{ sampleInput: 0, expectedOutput: 0 }],
 			};
 			chai.request(server)
 				.post("/submit")
@@ -67,6 +69,7 @@ describe("Test submission programs at /submit:", () => {
 						void foo(){}
 					`,
 				dockerConfig: "2",
+				testCases: [{ sampleInput: 0, expectedOutput: 0 }],
 			};
 			chai.request(server)
 				.post("/submit")
@@ -84,6 +87,7 @@ describe("Test submission programs at /submit:", () => {
 				socketId,
 				code: `#include<stdio.h>\nint main(){\nfoo();\n}`,
 				dockerConfig: "2",
+				testCases: [{ sampleInput: 0, expectedOutput: 0 }],
 			};
 			chai.request(server)
 				.post("/submit")
@@ -106,6 +110,7 @@ describe("Test submission programs at /submit:", () => {
 				socketId,
 				code: `#include "stdio.h"\nint main(){\nint a = 10 / 0;\nreturn 0;\n}`,
 				dockerConfig: "2",
+				testCases: [{ sampleInput: 0, expectedOutput: 0 }],
 			};
 			chai.request(server)
 				.post("/submit")
