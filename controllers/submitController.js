@@ -2,9 +2,13 @@ const {
 	socketValidator,
 	codeValidator,
 	dockerConfigValidator,
+	testCasesValidator,
 } = require("../middlewares/paramValidator.js");
 const { respondWithError } = require("../util/templateResponses");
-const { initDirectories } = require("../filesystem/index.js");
+const {
+	initDirectories,
+	generateTestFiles,
+} = require("../filesystem/index.js");
 
 module.exports = (req, res, next) => {
 	switch (socketValidator(req)) {
@@ -39,7 +43,12 @@ module.exports = (req, res, next) => {
 		default:
 			break;
 	}
+	if (!testCasesValidator(req))
+		return res.status(400).json({
+			error: "No test cases provided",
+		});
 	initDirectories(req.session.socketId)
+		.then(() => generateTestFiles(req))
 		.then(() => next())
 		.catch(error => {
 			respondWithError(

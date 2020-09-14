@@ -1,39 +1,101 @@
-module.exports = (error, socketId) => {
+const checkForLinkerError = (stderr, socketId) => {
+	// check if there is an instance of Linker Error within stderr
+	try {
+		let linkerErrorRegex = new RegExp(
+			`(${socketId}.c:\\(.text\\+0x.+\\): )`
+		);
+		matchedString = stderr.match(linkerErrorRegex);
+		if (matchedString) {
+			// then such a Linker Error exists in stderr
+			let header = matchedString[0];
+			let index = matchedString.index;
+			// header = "s-02c34e5658faf8e781.c:(.text+0xa): "
+			let errorMessage = stderr
+				.substring(index + header.length)
+				.split("\n")[0];
+			return errorMessage;
+		}
+		return null;
+	} catch (err) {
+		console.error(`error in checkForLinkerError:`, err);
+		throw new Error(err);
+	}
+};
+module.exports = (stderr, socketId) => {
 	/*
-	 * compilation error sample:
-	 * 	s-c7f938d272062af924.c: In function 'main':
-	 *	s-c7f938d272062af924.c:3:1: error: expected declaration or statement at end of input
-	 *	printf("Hello World!");
-	 *	^~~~~~
+	 * Parse the stderr string object to extract;
+	 * lineNumber, columnNumber, errorMessage, errorStack, and errorType
+	 *
+	 * Note: Proceed with compilationErrorParser only if it has been detected ...
+	 * ... that there's indeed an error in stderr, that is to prevent any unforeseen ...
+	 * ... errors in this process
 	 */
 	try {
-		let errorMessage, lineNumber, columnNumber, errorStack;
-
-		errorStack = error;
-		// trim first occurrence of file name
-		error = errorStack.substring(
-			errorStack.indexOf(`${socketId}.c: `) + `${socketId}.c: `.length
-		);
-		// get line number and column number
-		lineNumber = error.toString().split(":")[2];
-		columnNumber = error.toString().split(":")[3];
-		// get error message
-		errorMessage = error.split(
-			`${socketId}.c:${lineNumber}:${columnNumber}: `
-		)[1];
-		// trim code portion from errorMessage
-		errorMessage = errorMessage.split("\n")[0];
-
+		let lineNumber = null,
+			columnNumber = null,
+			errorStack = stderr,
+			errorMessage = null,
+			errorType = "compilation-error";
+		// extract lineNumber and columnNumber by first ...
+		// searching for substring "s-02c34e5658faf8e781.c:5:2:"
+		let substringRegex = new RegExp(`(${socketId}.c:\\d+:\\d+: )`);
+		let matchedString = stderr.match(substringRegex);
+		if (matchedString) {
+			let header = matchedString[0];
+			// header = "s-02c34e5658faf8e781.c:5:2:"
+			let index = matchedString.index;
+			lineNumber = header.split(":")[1];
+			columnNumber = header.split(":")[2];
+			/*
+			 * In a combined error stack, with warnings and Linker Errors, ...
+			 * a Linker Error message makes more sense to why compilation terminated ...
+			 * than a compilation warning message, so extract error message from within ...
+			 * a Linker Error, if it exists
+			 *
+			 * Sample combined error stack:
+			 * s-02c34e5658faf8e781.c: In function 'main':
+			 * s-02c34e5658faf8e781.c:5:2: warning: implicit declaration of function 'Foo' [-Wimplicit-function-declaration]
+			 *   Foo();
+			 *   ^~~
+			 * /tmp/cciiFJPL.o: In function 'main':
+			 * s-02c34e5658faf8e781.c:(.text+0xa): undefined reference to 'Foo'
+			 * collect2: error: ld returned 1 exit status
+			 */
+			let errorMessageFromLinkerError = checkForLinkerError(
+				stderr,
+				socketId
+			);
+			if (errorMessageFromLinkerError) {
+				errorMessage = errorMessageFromLinkerError;
+				errorType = "linker-error";
+			} else {
+				// use other error message as no Linker Error message exists in stderr
+				errorMessage = stderr
+					.substring(index + header.length)
+					.split("\n")[0];
+			}
+		} else {
+			// there may not be a lineNumber or columnNumber in the stderr ...
+			// ... incase of some Linker Errors, so search for Linker Error
+			let errorMessageFromLinkerError = checkForLinkerError(
+				stderr,
+				socketId
+			);
+			if (errorMessageFromLinkerError) {
+				errorMessage = errorMessageFromLinkerError;
+				errorType = "linker-error";
+			}
+		}
 		return {
-			errorMessage,
 			lineNumber,
 			columnNumber,
+			errorMessage,
 			errorStack,
+			errorType,
 		};
-	} catch (error) {
-		console.error(`error in compilationErrorParser.js:`, error);
+	} catch (err) {
 		return {
-			errorInParser: error,
+			errorInParser: err,
 		};
 	}
 };

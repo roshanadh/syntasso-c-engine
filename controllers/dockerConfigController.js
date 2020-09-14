@@ -8,6 +8,7 @@ const {
 } = require("../docker/index.js");
 const { respondWithError } = require("../util/templateResponses.js");
 const compilationErrorParser = require("../util/compilationErrorParser.js");
+const compilationWarningParser = require("../util/compilationWarningParser");
 
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
@@ -73,6 +74,7 @@ const handleConfigOne = (req, res) => {
 const handleConfigTwo = (req, res) => {
 	const containerName = req.body.socketId;
 	const submissionFileName = `${req.body.socketId}.c`;
+	let compilationWarnings = null;
 
 	const { socketInstance } = require("../server.js");
 
@@ -81,6 +83,13 @@ const handleConfigTwo = (req, res) => {
 			console.log(
 				`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 			);
+			// check if resolved stdout has any warning in it
+			if (stdout.warning) {
+				compilationWarnings = compilationWarningParser(
+					stdout.warning,
+					containerName
+				);
+			}
 			return execInCContainer(req, socketInstance);
 		})
 		.then(stdout => {
@@ -88,6 +97,7 @@ const handleConfigTwo = (req, res) => {
 				`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
 			);
 			res.status(200).json({
+				compilationWarnings,
 				output: JSON.parse(stdout).stdout,
 			});
 		})
@@ -101,15 +111,19 @@ const handleConfigTwo = (req, res) => {
 			if (error.stderr) {
 				let { stderr } = error;
 				// check if compilation error
+				// here, compilation-error doesn't necessarily mean "compilation error", ...
+				// ... it just means that the error was encountered inside compileInCContainer ...
+				// ... and it may be a compilation-error, or a linker-error, to be determined ...
+				// ... by compilationErrorParser
 				if (
 					error.errorType &&
 					error.errorType === "compilation-error"
 				) {
+					// stderr was obtained during compilation
 					parsedError = compilationErrorParser(
 						stderr,
 						req.session.socketId
 					);
-
 					// check if compilationErrorParser had any errors during parsing
 					if (parsedError.errorInParser) {
 						return respondWithError(
@@ -120,13 +134,28 @@ const handleConfigTwo = (req, res) => {
 					}
 					// if no error occurred during parsing, respond with the parsed error
 					return res.status(200).json({
-						errorType: error.errorType,
-						error: parsedError,
+						compilationWarnings,
+						error: {
+							...parsedError,
+						},
+					});
+				} else if (
+					// check if runtime error
+					error.errorType &&
+					error.errorType === "runtime-error"
+				) {
+					// stderr was obtained during runtime
+					return res.status(200).json({
+						compilationWarnings,
+						error: {
+							errorType: error.errorType,
+							errorStack: error.stderr,
+						},
 					});
 				}
 			}
 
-			// handle error
+			// handle error that is not stderr
 			if (error.error) {
 				let err = error.error;
 				if (
@@ -141,7 +170,6 @@ const handleConfigTwo = (req, res) => {
 					);
 				}
 			}
-
 			return respondWithError(
 				res,
 				503,

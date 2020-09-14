@@ -16,3 +16,8 @@ module.exports.dockerConfigValidator = req => {
 		return "no-valid-config";
 	else return "ok";
 };
+
+module.exports.testCasesValidator = req => {
+	if (!req.body.testCases || req.body.testCases.length === 0) return false;
+	return true;
+};
