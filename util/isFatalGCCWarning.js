@@ -58,8 +58,11 @@ module.exports = (stderr, socketId) => {
 	const indexOfExitStatus = stderr.search(exitStatusRegex);
 
 	let isWarning = indexOfWarning !== -1 ? true : false;
+	// if the stderr has any instances of "error", or if there's an ...
+	// ... explicit "ld returned {d} exit status" message, the warning ...
+	// ... is fatal
 	let isFatalWarning =
-		hasError(stderr, socketId) && indexOfExitStatus !== -1 ? true : false;
+		hasError(stderr, socketId) || indexOfExitStatus !== -1 ? true : false;
 
 	return {
 		isWarning,
