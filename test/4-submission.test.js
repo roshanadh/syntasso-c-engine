@@ -53,6 +53,24 @@ describe("Test submission programs at /submit:", () => {
 					done();
 				});
 		});
+		it("should respond with errorType = compilation-error for div-by-zero", done => {
+			const payload = {
+				socketId,
+				code: `#include "stdio.h"\nint main(){\nint a = 10 / 0;\nreturn 0;\n}`,
+				dockerConfig: "2",
+				testCases: [{ sampleInput: 0, expectedOutput: 0 }],
+			};
+			chai.request(server)
+				.post("/submit")
+				.send(payload)
+				.end((err, res) => {
+					expect(err).to.be.null;
+					res.body.should.be.a("object");
+					res.body.error.should.be.a("object");
+					res.body.error.errorType.should.equal("compilation-error");
+					done();
+				});
+		});
 	});
 
 	describe("Linker error tests:", () => {
@@ -105,23 +123,6 @@ describe("Test submission programs at /submit:", () => {
 	});
 
 	describe("Runtime error tests:", () => {
-		it("should respond with errorType = linker-error", done => {
-			const payload = {
-				socketId,
-				code: `#include "stdio.h"\nint main(){\nint a = 10 / 0;\nreturn 0;\n}`,
-				dockerConfig: "2",
-				testCases: [{ sampleInput: 0, expectedOutput: 0 }],
-			};
-			chai.request(server)
-				.post("/submit")
-				.send(payload)
-				.end((err, res) => {
-					expect(err).to.be.null;
-					res.body.should.be.a("object");
-					res.body.error.should.be.a("object");
-					res.body.error.errorType.should.equal("runtime-error");
-					done();
-				});
-		});
+		// TODO: Write runtime error tests
 	});
 });
