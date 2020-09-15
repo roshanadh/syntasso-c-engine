@@ -49,7 +49,7 @@ describe("Test generation of files at /submit:", () => {
 			.end((err, res) => {
 				expect(err).to.be.null;
 				res.body.should.be.a("object");
-				res.body.output.should.equal("Hello World!");
+				res.body.observedOutput.should.equal("Hello World!");
 				expect(fs.existsSync(submissionFilePath)).to.be.true;
 				done();
 			});
