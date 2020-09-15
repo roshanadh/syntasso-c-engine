@@ -52,11 +52,6 @@ module.exports = (req, res, next) => {
 			return res.status(400).json({
 				error: "testCases should be an array",
 			});
-		case "cannot-parse":
-			return res.status(400).json({
-				error:
-					"Invalid type of testCases provided; provide an array of JSON object",
-			});
 		default:
 			break;
 	}
