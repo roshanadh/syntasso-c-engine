@@ -64,6 +64,9 @@ module.exports = (req, socketInstance) => {
 				}
 			});
 			mainWrapper.stderr.on("data", stderr => {
+				console.dir({
+					stderr: stderr,
+				});
 				stderr = JSON.parse(stderr.toString());
 				console.error(
 					`stderr while executing submission inside container ${containerName}:`,
