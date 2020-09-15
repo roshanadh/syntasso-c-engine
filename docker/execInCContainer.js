@@ -27,8 +27,13 @@ module.exports = (req, socketInstance) => {
 			});
 
 			exec(
-				`docker exec -i ${containerName} node main-wrapper.js`,
+				`docker exec -ie socketId='${socketId}' ${containerName} node main-wrapper.js`,
 				(error, stdout, stderr) => {
+					console.dir({
+						error: error ? error : null,
+						stderr: stderr ? stderr : null,
+						stdout: stdout ? stdout : null,
+					});
 					if (error) {
 						console.error(
 							`error while executing submission inside container ${containerName}:`,
@@ -66,7 +71,7 @@ module.exports = (req, socketInstance) => {
 						});
 					//  write output to client-files/outputs/${socketId}.txt
 					writeOutputToFile(socketId, stdout)
-						.then(() => resolve(stdout))
+						.then(() => resolve(JSON.parse(stdout)))
 						.catch(error => {
 							return reject({ error });
 						});
