@@ -27,11 +27,17 @@ const compileSubmission = (req, socketInstance) => {
 			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
 				stdout: `Compiling user's submission...`,
 			});
-
-			// compile submission using -Wall flag that enables some warnings
-			// check more GCC warning options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+			/*
+			 * Flags used in compilation:
+			 * -Wall: enables some warnings
+			 * -Wfatal-errors: stops compilation after a fatal error has occurred
+			 * -Werror=div-by-zero: stops compilation for a div-by-zero warning, so ...
+			 * ... division by zero is now a compilation error
+			 *
+			 * check more GCC warning options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+			 */
 			exec(
-				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission -Wall -Wfatal-errors`,
+				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission -Wall -Wfatal-errors -Werror=div-by-zero`,
 				(error, stdout, stderr) => {
 					// compilation error is received as error as well as an stderr
 					if (stderr) {
