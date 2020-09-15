@@ -18,6 +18,13 @@ module.exports.dockerConfigValidator = req => {
 };
 
 module.exports.testCasesValidator = req => {
-	if (!req.body.testCases || req.body.testCases.length === 0) return false;
-	return true;
+	if (!req.body.testCases || req.body.testCases.length === 0)
+		return "no-test-cases";
+	try {
+		if (!Array.isArray(JSON.parse(req.body.testCases)))
+			return "not-an-array";
+	} catch (error) {
+		return "cannot-parse";
+	}
+	return "ok";
 };
