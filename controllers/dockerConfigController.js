@@ -63,7 +63,6 @@ const handleConfigOne = (req, res) => {
 					);
 				}
 			}
-
 			return respondWithError(
 				res,
 				503,
@@ -94,11 +93,15 @@ const handleConfigTwo = (req, res) => {
 		})
 		.then(stdout => {
 			console.log(
-				`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
+				`User's submission ${submissionFileName} executed inside C container ${containerName}.\n`
 			);
 			res.status(200).json({
 				compilationWarnings,
-				output: JSON.parse(stdout).stdout,
+				...stdout,
+			});
+			return console.log("Response sent to the client:", {
+				compilationWarnings,
+				...stdout,
 			});
 		})
 		.catch(error => {
@@ -133,7 +136,13 @@ const handleConfigTwo = (req, res) => {
 						);
 					}
 					// if no error occurred during parsing, respond with the parsed error
-					return res.status(200).json({
+					res.status(200).json({
+						compilationWarnings,
+						error: {
+							...parsedError,
+						},
+					});
+					return console.log("Response sent to the client:", {
 						compilationWarnings,
 						error: {
 							...parsedError,
@@ -145,7 +154,14 @@ const handleConfigTwo = (req, res) => {
 					error.errorType === "runtime-error"
 				) {
 					// stderr was obtained during runtime
-					return res.status(200).json({
+					res.status(200).json({
+						compilationWarnings,
+						error: {
+							errorType: error.errorType,
+							errorStack: error.stderr,
+						},
+					});
+					return console.log("Response sent to the client:", {
 						compilationWarnings,
 						error: {
 							errorType: error.errorType,
@@ -197,6 +213,9 @@ module.exports = (req, res) => {
 		.catch(error => {
 			console.error(`error in dockerConfigController:`, error);
 			res.status(503).json({
+				error: "Service currently unavailable due to server conditions",
+			});
+			return console.log("Response sent to the client:", {
 				error: "Service currently unavailable due to server conditions",
 			});
 		});
