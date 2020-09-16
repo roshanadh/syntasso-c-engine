@@ -1,7 +1,5 @@
 const { exec } = require("child_process");
 
-const { writeOutputToFile } = require("../filesystem/index.js");
-
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
 		/*
@@ -33,34 +31,90 @@ module.exports = (req, socketInstance) => {
 				console.log(
 					`stdout while executing submission inside container ${containerName}: ${stdout}`
 				);
-				let stringOutput = stdout.toString();
-				let jsonOutput = JSON.parse(stringOutput);
+				try {
+					let stringOutput = stdout.toString();
+					let jsonOutput = JSON.parse(stringOutput);
 
-				if (jsonOutput.type === "test-status") {
-					// stdout is the test status for an individual test case
-					socketInstance.instance.to(socketId).emit("test-status", {
-						...jsonOutput,
-					});
-				} else if (jsonOutput.type === "full-response") {
-					// stdout is the final response for user's submission
-					socketInstance.instance
-						.to(socketId)
-						.emit("docker-app-stdout", {
-							stdout: `User's submission executed`,
-						});
-					//  write output to client-files/outputs/${socketId}.txt
-					writeOutputToFile(socketId, stringOutput)
-						.then(() => resolve(jsonOutput))
-						.catch(error => {
-							return reject({
-								error,
+					if (jsonOutput.type === "test-status") {
+						// stdout is the test status for an individual test case
+						socketInstance.instance
+							.to(socketId)
+							.emit("test-status", {
+								...jsonOutput,
 							});
+					} else if (jsonOutput.type === "full-response") {
+						// stdout is the final response for user's submission
+						socketInstance.instance
+							.to(socketId)
+							.emit("docker-app-stdout", {
+								stdout: `User's submission executed`,
+							});
+						return resolve(jsonOutput);
+					} else {
+						console.error(
+							`New response type encountered in execInCContainer for socketId ${socketId}:`,
+							jsonResponse
+						);
+					}
+				} catch (error) {
+					if (error.message.includes("Unexpected token { in JSON")) {
+						// this error happens because mainWrapper.stdout ...
+						// ... outputs a stream of JSON objects like:
+						// ... {}{}{}...
+						// we need to create an array of JSON objects: ...
+						// ... [{}, {}, {}, ...] in such a case
+						try {
+							console.log(
+								`Parsing stdout with adjoining JSON objects encountered for socketId ${socketId}`
+							);
+							let stream = stdout.toString().trim();
+							stream = stream.split("}{");
+							stream.forEach((element, index) => {
+								// add missing braces as .split("}{") removes ...
+								// ... every instance of "}{" in the stdout
+								if (index === 0) stream[index] = element + "}";
+								else if (index === stream.length - 1)
+									stream[index] = "{" + element;
+								else stream[index] = "{" + element + "}";
+								// parse JSON and create an array of JSON objects
+								stream[index] = JSON.parse(stream[index]);
+								// if stream[index] is a test-status type JSON, emit:
+								if (
+									stream[index].type &&
+									stream[index].type === "test-status"
+								) {
+									socketInstance.instance
+										.to(session.socketId)
+										.emit("test-status", {
+											...stream[index],
+										});
+								} else {
+									// stream[index].type === "full-response"
+									socketInstance.instance
+										.to(socketId)
+										.emit("docker-app-stdout", {
+											stdout: `User's submission executed`,
+										});
+								}
+							});
+						} catch (err) {
+							console.error(
+								`Error while parsing stdout with adjoining JSON objects in execInCContainer for socketId ${socketId}:`,
+								err
+							);
+							return reject({
+								err,
+							});
+						}
+					} else {
+						console.error(
+							`Error in execInCContainer for socketId ${socketId}:`,
+							error
+						);
+						return reject({
+							error,
 						});
-				} else {
-					console.error(
-						`New response type encountered in execInCContainer for socketId ${socketId}:`,
-						jsonResponse
-					);
+					}
 				}
 			});
 			mainWrapper.stderr.on("data", stderr => {
