@@ -58,12 +58,14 @@ try {
 							// ... otherwise, its signal would be null
 							timedOut:
 								cProcess.signal === "SIGTERM" ? true : false,
+							timeOutLength: EXECUTION_TIME_OUT_IN_MS,
 							expectedOutput: null,
 							observedOutput: stdout,
 							// if length of stdout is larger than MAX length permitted, ...
 							// ... set stdout as null and specify reason in response object
 							observedOutputTooLong:
 								stdout === null ? true : false,
+							observedOutputMaxLength: MAX_LENGTH_STDOUT,
 						};
 						process.stdout.write(
 							Buffer.from(JSON.stringify(response))
