@@ -16,7 +16,10 @@ let sampleInputs,
 	sampleInputFileContents,
 	expectedOutputFileContents,
 	// response object to be sent to the process that executes main-wrapper.js
-	response = {};
+	response = {
+		timeOutLength: EXECUTION_TIME_OUT_IN_MS,
+		observedOutputMaxLength: MAX_LENGTH_STDOUT,
+	};
 
 try {
 	readTestFiles(socketId)
@@ -57,6 +60,10 @@ try {
 								cProcess.signal === "SIGTERM" ? true : false,
 							expectedOutput: null,
 							observedOutput: stdout,
+							// if length of stdout is larger than MAX length permitted, ...
+							// ... set stdout as null and specify reason in response object
+							observedOutputTooLong:
+								stdout === null ? true : false,
 						};
 						process.stdout.write(
 							Buffer.from(JSON.stringify(response))
@@ -119,6 +126,9 @@ const main = () => {
 					].toString(),
 					expectedOutput: expectedOutputFileContents.toString(),
 					observedOutput: stdout,
+					// if length of stdout is larger than MAX length permitted, ...
+					// ... set stdout as null and specify reason in response object
+					observedOutputTooLong: stdout === null ? true : false,
 				};
 
 				// write to stdout to indicate completion of test #i
