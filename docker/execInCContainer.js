@@ -84,7 +84,7 @@ module.exports = (req, socketInstance) => {
 									stream[index].type === "test-status"
 								) {
 									socketInstance.instance
-										.to(session.socketId)
+										.to(socketId)
 										.emit("test-status", {
 											...stream[index],
 										});
