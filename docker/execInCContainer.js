@@ -95,6 +95,7 @@ module.exports = (req, socketInstance) => {
 										.emit("docker-app-stdout", {
 											stdout: `User's submission executed`,
 										});
+									return resolve(jsonOutput);
 								}
 							});
 						} catch (err) {
