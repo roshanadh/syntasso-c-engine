@@ -90,12 +90,13 @@ module.exports = (req, socketInstance) => {
 										});
 								} else {
 									// stream[index].type === "full-response"
+									// this is the full response body, so resolve it
 									socketInstance.instance
 										.to(socketId)
 										.emit("docker-app-stdout", {
 											stdout: `User's submission executed`,
 										});
-									return resolve(jsonOutput);
+									return resolve(stream[index]);
 								}
 							});
 						} catch (err) {
