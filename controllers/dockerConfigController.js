@@ -10,18 +10,24 @@ const { respondWithError } = require("../util/templateResponses.js");
 const compilationErrorParser = require("../util/compilationErrorParser.js");
 const compilationWarningParser = require("../util/compilationWarningParser");
 
+let imageBuildTime = null,
+	containerCreateTime = null,
+	containerStartTime = null;
+
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
 
 	const { socketInstance } = require("../server.js");
 
 	buildCImage(req, socketInstance)
-		.then(stdout => {
+		.then(buildLogs => {
 			console.log("C image built.");
+			imageBuildTime = buildLogs.imageBuildTime;
 			return createCContainer(req, socketInstance);
 		})
-		.then(stdout => {
+		.then(creationLogs => {
 			console.log(`C container ${containerName} created.`);
+			containerCreateTime = creationLogs.containerCreateTime;
 			return handleConfigOne(req, res);
 		})
 		.catch(error => {
@@ -38,8 +44,9 @@ const handleConfigOne = (req, res) => {
 	const { socketInstance } = require("../server.js");
 
 	startCContainer(req, socketInstance)
-		.then(stdout => {
+		.then(startLogs => {
 			console.log(`C container ${containerName} started.`);
+			containerStartTime = startLogs.containerStartTime;
 			return handleConfigTwo(req, res);
 		})
 		.catch(error => {
@@ -95,14 +102,33 @@ const handleConfigTwo = (req, res) => {
 			console.log(
 				`User's submission ${submissionFileName} executed inside C container ${containerName}.\n`
 			);
-			res.status(200).json({
-				compilationWarnings,
-				...stdout,
-			});
-			return console.log("Response sent to the client:", {
-				compilationWarnings,
-				...stdout,
-			});
+			let response = {};
+			switch (parseInt(req.body.dockerConfig)) {
+				case 0:
+					response = {
+						compilationWarnings,
+						...stdout,
+						imageBuildTime,
+						containerCreateTime,
+						containerStartTime,
+					};
+					break;
+				case 1:
+					response = {
+						compilationWarnings,
+						...stdout,
+						containerStartTime,
+					};
+					break;
+				case 2:
+					response = {
+						compilationWarnings,
+						...stdout,
+					};
+					break;
+			}
+			res.status(200).json(response);
+			return console.log("Response sent to the client:", response);
 		})
 		.catch(error => {
 			// caught error may be an error or an stderr rejected by ...
@@ -136,38 +162,85 @@ const handleConfigTwo = (req, res) => {
 						);
 					}
 					// if no error occurred during parsing, respond with the parsed error
-					res.status(200).json({
-						compilationWarnings,
-						error: {
-							...parsedError,
-						},
-					});
-					return console.log("Response sent to the client:", {
-						compilationWarnings,
-						error: {
-							...parsedError,
-						},
-					});
+					switch (parseInt(req.body.dockerConfig)) {
+						case 0:
+							response = {
+								compilationWarnings,
+								error: {
+									...parsedError,
+								},
+								imageBuildTime,
+								containerCreateTime,
+								containerStartTime,
+							};
+							break;
+						case 1:
+							response = {
+								compilationWarnings,
+								error: {
+									...parsedError,
+								},
+								containerStartTime,
+							};
+							break;
+						case 2:
+							response = {
+								compilationWarnings,
+								error: {
+									...parsedError,
+								},
+							};
+							break;
+					}
+					res.status(200).json(response);
+					return console.log(
+						"Response sent to the client:",
+						response
+					);
 				} else if (
 					// check if runtime error
 					error.errorType &&
 					error.errorType === "runtime-error"
 				) {
 					// stderr was obtained during runtime
-					res.status(200).json({
-						compilationWarnings,
-						error: {
-							errorType: error.errorType,
-							errorStack: error.stderr,
-						},
-					});
-					return console.log("Response sent to the client:", {
-						compilationWarnings,
-						error: {
-							errorType: error.errorType,
-							errorStack: error.stderr,
-						},
-					});
+					switch (parseInt(req.body.dockerConfig)) {
+						case 0:
+							response = {
+								compilationWarnings,
+								error: {
+									errorType: error.errorType,
+									errorStack: error.stderr,
+								},
+								imageBuildTime,
+								containerCreateTime,
+								containerStartTime,
+							};
+							break;
+						case 1:
+							response = {
+								compilationWarnings,
+								error: {
+									errorType: error.errorType,
+									errorStack: error.stderr,
+								},
+								containerStartTime,
+							};
+							break;
+						case 2:
+							response = {
+								compilationWarnings,
+								error: {
+									errorType: error.errorType,
+									errorStack: error.stderr,
+								},
+							};
+							break;
+					}
+					res.status(200).json(response);
+					return console.log(
+						"Response sent to the client:",
+						response
+					);
 				}
 			}
 
