@@ -44,6 +44,9 @@ module.exports = (req, socketInstance) => {
 							});
 					} else if (jsonOutput.type === "full-response") {
 						// stdout is the final response for user's submission
+
+						// remove "type" property from jsonOutput object before resolving
+						delete jsonOutput.type;
 						socketInstance.instance
 							.to(socketId)
 							.emit("docker-app-stdout", {
@@ -91,6 +94,9 @@ module.exports = (req, socketInstance) => {
 								} else {
 									// stream[index].type === "full-response"
 									// this is the full response body, so resolve it
+
+									// remove "type" property from stream[index] object before resolving
+									delete stream[index].type;
 									socketInstance.instance
 										.to(socketId)
 										.emit("docker-app-stdout", {
