@@ -1,5 +1,7 @@
 const { exec } = require("child_process");
 
+const convertTimeToMs = require("../util/convertTimeToMs.js");
+
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
 		/*
@@ -20,10 +22,11 @@ module.exports = (req, socketInstance) => {
 				stdout: "Building a C image...",
 			});
 
-			let _error, _stdout, _stderr;
+			let _error, _stdout, _stderr, imageBuildTime;
 
 			const imgBuildProcess = exec(
-				"docker build -t img_c .",
+				"time docker build -t img_c .",
+				{ shell: "/bin/bash" },
 				(error, stdout, stderr) => {
 					if (error) {
 						_error = error;
@@ -35,14 +38,42 @@ module.exports = (req, socketInstance) => {
 							});
 						return reject({ error });
 					} else if (stderr) {
-						_stderr = stderr;
-						console.error(`stderr during C image build:`, stderr);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: stderr,
+						let times;
+						/*
+						 * 'time' command returns the real(total), user, and sys(system) ...
+						 * ... times for the execution of following command (e.g. docker build ... )
+						 * The times are returned in the following structure:
+						 * ++++++++++++++++++
+						 * + real\t0m0.000s +
+						 * + user\t0m0.000s +
+						 * + sys\t0m0.000s  +
+						 * ++++++++++++++++++
+						 * Note: 0m0.000s = 0minutes and 0.000 seconds
+						 * We need to extract real(total) time/imageBuildTime from the returned timed.
+						 * The times are returned as an 'stderr' object
+						 */
+						try {
+							times = stderr.split("\n");
+							// get build time in terms of 0m.000s
+							imageBuildTime = times[1].split("\t")[1];
+							return resolve({
+								stdout: _stdout,
+								imageBuildTime: convertTimeToMs(imageBuildTime),
 							});
-						return reject({ stderr });
+						} catch (err) {
+							// stderr contains an actual error and not execution times
+							_stderr = stderr;
+							console.error(
+								`stderr during C image build:`,
+								stderr
+							);
+							socketInstance.instance
+								.to(socketId)
+								.emit("docker-app-stdout", {
+									stdout: stderr,
+								});
+							return reject({ stderr });
+						}
 					}
 				}
 			);
@@ -53,10 +84,6 @@ module.exports = (req, socketInstance) => {
 				socketInstance.instance.to(socketId).emit("docker-app-stdout", {
 					stdout,
 				});
-			});
-
-			imgBuildProcess.on("close", code => {
-				return resolve(_stdout);
 			});
 		} catch (error) {
 			console.log(`error during buildCImage:`, error);
