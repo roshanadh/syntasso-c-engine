@@ -95,7 +95,11 @@ try {
 }
 
 const main = () => {
-	for (let i = 0; i < sampleInputs.length; i++) {
+	// assign value to 'sampleInputs' key in response
+	let len_sampleInputs = sampleInputs.length;
+	response["sampleInputs"] = len_sampleInputs;
+	// spawn n processes to execute submission n times for n sampleInputs
+	for (let i = 0; i < len_sampleInputs; i++) {
 		try {
 			const cProcess = spawnSync("./submission", {
 				input: writeToStdin(sampleInputs.files[i]),
