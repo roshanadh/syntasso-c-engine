@@ -1,6 +1,7 @@
 const { exec } = require("child_process");
 
 const removeCContainer = require("./removeCContainer.js");
+const convertTimeToMs = require("../util/convertTimeToMs.js");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
@@ -19,6 +20,7 @@ module.exports = (req, socketInstance) => {
 			const { socketId } = req.body;
 			const containerName = socketId;
 
+			let containerCreateTime;
 			removeCContainer(containerName)
 				.then(stdout => {
 					console.log(
@@ -31,7 +33,8 @@ module.exports = (req, socketInstance) => {
 						});
 
 					exec(
-						`docker create -it --name ${containerName} img_c`,
+						`time docker create -it --name ${containerName} img_c`,
+						{ shell: "/bin/bash" },
 						(error, stdout, stderr) => {
 							if (error) {
 								console.error(
@@ -40,11 +43,42 @@ module.exports = (req, socketInstance) => {
 								);
 								return reject({ error });
 							} else if (stderr) {
-								console.error(
-									`stderr during C container creation:`,
-									stderr
-								);
-								return reject({ stderr });
+								let times;
+								/*
+								 * 'time' command returns the real(total), user, and sys(system) ...
+								 * ... times for the execution of following command (e.g. docker build ... )
+								 * The times are returned in the following structure:
+								 * ++++++++++++++++++
+								 * + real\t0m0.000s +
+								 * + user\t0m0.000s +
+								 * + sys\t0m0.000s  +
+								 * ++++++++++++++++++
+								 * Note: 0m0.000s = 0minutes and 0.000 seconds
+								 * We need to extract real(total) time/containerCreateTime from the returned timed.
+								 * The times are returned as an 'stderr' object
+								 */
+								try {
+									times = stderr.split("\n");
+									// get build time in terms of 0m.000s
+									containerCreateTime = times[1].split(
+										"\t"
+									)[1];
+									return resolve({
+										stdout,
+										containerCreateTime: convertTimeToMs(
+											containerCreateTime
+										),
+									});
+								} catch (err) {
+									// stderr contains an actual error and not execution times
+									console.error(
+										`stderr during C container creation:`,
+										stderr
+									);
+									return reject({
+										stderr,
+									});
+								}
 							}
 							if (stdout.trim() !== "")
 								console.log(
