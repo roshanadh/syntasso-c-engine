@@ -1,7 +1,10 @@
 const { exec } = require("child_process");
+const { performance } = require("perf_hooks");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
+		let startTime = performance.now(),
+			executionTime = 0;
 		/*
 		 * @resolve
 		 * Always resolve the stdout as resolve(stdout)
@@ -28,6 +31,7 @@ module.exports = (req, socketInstance) => {
 				`docker exec -ie socketId='${socketId}' ${containerName} node main-wrapper.js`
 			);
 			mainWrapper.stdout.on("data", stdout => {
+				executionTime = performance.now() - startTime;
 				console.log(
 					`stdout while executing submission inside container ${containerName}: ${stdout}`
 				);
@@ -52,7 +56,7 @@ module.exports = (req, socketInstance) => {
 							.emit("docker-app-stdout", {
 								stdout: `User's submission executed`,
 							});
-						return resolve(jsonOutput);
+						return resolve({ ...jsonOutput, executionTime });
 					} else {
 						console.error(
 							`New response type encountered in execInCContainer for socketId ${socketId}:`,
@@ -102,7 +106,10 @@ module.exports = (req, socketInstance) => {
 										.emit("docker-app-stdout", {
 											stdout: `User's submission executed`,
 										});
-									return resolve(stream[index]);
+									return resolve({
+										...stream[index],
+										executionTime,
+									});
 								}
 							});
 						} catch (err) {
