@@ -1,6 +1,20 @@
 "use strict";
 
+process.on("uncaughtException", err => {
+	process.stderr.write(
+		Buffer.from(
+			JSON.stringify({
+				message: err.message,
+				name: err.name,
+				stack: err.stack,
+			})
+		),
+		() => process.exit(1)
+	);
+});
+
 const { spawnSync } = require("child_process");
+const { performance } = require("perf_hooks");
 
 const readTestFiles = require("./read-test-files.js");
 
@@ -15,6 +29,7 @@ let sampleInputs,
 	expectedOutputs,
 	sampleInputFileContents,
 	expectedOutputFileContents,
+	executionTimesForProcesses = [],
 	// response object to be sent to the process that executes main-wrapper.js
 	response = {
 		timeOutLength: EXECUTION_TIME_OUT_IN_MS,
@@ -101,11 +116,12 @@ const main = () => {
 	// spawn n processes to execute submission n times for n sampleInputs
 	for (let i = 0; i < len_sampleInputs; i++) {
 		try {
+			let startTime = performance.now();
 			const cProcess = spawnSync("./submission", {
 				input: writeToStdin(sampleInputs.files[i]),
 				timeout: EXECUTION_TIME_OUT_IN_MS,
 			});
-
+			executionTimesForProcesses[i] = performance.now() - startTime;
 			const io = cProcess.output;
 			const stdout =
 				io[1].toString().length <= MAX_LENGTH_STDOUT
@@ -135,6 +151,7 @@ const main = () => {
 					// if length of stdout is larger than MAX length permitted, ...
 					// ... set stdout as null and specify reason in response object
 					observedOutputTooLong: stdout === null ? true : false,
+					executionTimeForProcess: executionTimesForProcesses[i],
 				};
 
 				// write to stdout to indicate completion of test #i
@@ -161,7 +178,16 @@ const main = () => {
 				);
 			}
 		} catch (err) {
-			throw new Error(err);
+			process.stderr.write(
+				Buffer.from(
+					JSON.stringify({
+						message: err.message,
+						name: err.name,
+						stack: err.stack,
+					})
+				),
+				() => process.exit(1)
+			);
 		}
 	}
 	// write the final response to stdout
