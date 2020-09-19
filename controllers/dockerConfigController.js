@@ -12,7 +12,8 @@ const compilationWarningParser = require("../util/compilationWarningParser");
 
 let imageBuildTime = null,
 	containerCreateTime = null,
-	containerStartTime = null;
+	containerStartTime = null,
+	compilationTime = null;
 
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
@@ -85,14 +86,15 @@ const handleConfigTwo = (req, res) => {
 	const { socketInstance } = require("../server.js");
 
 	compileInCContainer(req, socketInstance)
-		.then(stdout => {
+		.then(compilationLogs => {
 			console.log(
 				`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 			);
-			// check if resolved stdout has any warning in it
-			if (stdout.warning) {
+			({ compilationTime } = compilationLogs);
+			// check if resolved compilationLogs has any warning in it
+			if (compilationLogs.warning) {
 				compilationWarnings = compilationWarningParser(
-					stdout.warning,
+					compilationLogs.warning,
 					containerName
 				);
 			}
@@ -111,6 +113,7 @@ const handleConfigTwo = (req, res) => {
 						imageBuildTime,
 						containerCreateTime,
 						containerStartTime,
+						compilationTime,
 					};
 					break;
 				case 1:
@@ -118,12 +121,14 @@ const handleConfigTwo = (req, res) => {
 						compilationWarnings,
 						...stdout,
 						containerStartTime,
+						compilationTime,
 					};
 					break;
 				case 2:
 					response = {
 						compilationWarnings,
 						...stdout,
+						compilationTime,
 					};
 					break;
 			}
@@ -161,6 +166,8 @@ const handleConfigTwo = (req, res) => {
 							"Service unavailable due to server conditions"
 						);
 					}
+					({ compilationTime } = error);
+
 					// if no error occurred during parsing, respond with the parsed error
 					switch (parseInt(req.body.dockerConfig)) {
 						case 0:
@@ -172,6 +179,7 @@ const handleConfigTwo = (req, res) => {
 								imageBuildTime,
 								containerCreateTime,
 								containerStartTime,
+								compilationTime,
 							};
 							break;
 						case 1:
@@ -181,6 +189,7 @@ const handleConfigTwo = (req, res) => {
 									...parsedError,
 								},
 								containerStartTime,
+								compilationTime,
 							};
 							break;
 						case 2:
@@ -189,6 +198,7 @@ const handleConfigTwo = (req, res) => {
 								error: {
 									...parsedError,
 								},
+								compilationTime,
 							};
 							break;
 					}
@@ -214,6 +224,7 @@ const handleConfigTwo = (req, res) => {
 								imageBuildTime,
 								containerCreateTime,
 								containerStartTime,
+								compilationTime,
 							};
 							break;
 						case 1:
@@ -224,6 +235,7 @@ const handleConfigTwo = (req, res) => {
 									errorStack: error.stderr,
 								},
 								containerStartTime,
+								compilationTime,
 							};
 							break;
 						case 2:
@@ -233,6 +245,7 @@ const handleConfigTwo = (req, res) => {
 									errorType: error.errorType,
 									errorStack: error.stderr,
 								},
+								compilationTime,
 							};
 							break;
 					}
