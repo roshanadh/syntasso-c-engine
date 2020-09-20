@@ -60,7 +60,7 @@ module.exports = (req, socketInstance) => {
 					} else {
 						console.error(
 							`New response type encountered in execInCContainer for socketId ${socketId}:`,
-							jsonResponse
+							jsonOutput
 						);
 					}
 				} catch (error) {
