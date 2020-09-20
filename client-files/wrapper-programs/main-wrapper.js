@@ -70,6 +70,7 @@ try {
 						// ... generated
 						const testStatus = null;
 						response = {
+							type: "full-response",
 							sampleInputs: 0,
 							testStatus,
 							// if cProcess timed out, its signal would be SIGTERM by default ...
