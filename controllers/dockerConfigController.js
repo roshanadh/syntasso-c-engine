@@ -109,6 +109,7 @@ const handleConfigTwo = (req, res) => {
 				case 0:
 					response = {
 						compilationWarnings,
+						error: null,
 						...stdout,
 						imageBuildTime,
 						containerCreateTime,
@@ -119,6 +120,7 @@ const handleConfigTwo = (req, res) => {
 				case 1:
 					response = {
 						compilationWarnings,
+						error: null,
 						...stdout,
 						containerStartTime,
 						compilationTime,
@@ -127,6 +129,7 @@ const handleConfigTwo = (req, res) => {
 				case 2:
 					response = {
 						compilationWarnings,
+						error: null,
 						...stdout,
 						compilationTime,
 					};
