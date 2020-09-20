@@ -62,6 +62,12 @@ module.exports = (req, socketInstance) => {
 							`New response type encountered in execInCContainer for socketId ${socketId}:`,
 							jsonOutput
 						);
+						socketInstance.instance
+							.to(socketId)
+							.emit("docker-app-stdout", {
+								stdout: `User's submission executed`,
+							});
+						return resolve({ ...jsonOutput, executionTime });
 					}
 				} catch (error) {
 					if (error.message.includes("Unexpected token { in JSON")) {
