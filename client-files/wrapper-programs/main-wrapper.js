@@ -51,9 +51,12 @@ try {
 			) {
 				// spawn one process and do not pass any sample input to it
 				try {
+					let startTime = performance.now();
+
 					const cProcess = spawnSync("./submission", {
 						timeout: EXECUTION_TIME_OUT_IN_MS,
 					});
+					let executionTimeForProcess = performance.now() - startTime;
 					const io = cProcess.output;
 					const stdout =
 						io[1].toString().length <= MAX_LENGTH_STDOUT
@@ -81,6 +84,7 @@ try {
 							observedOutputTooLong:
 								stdout === null ? true : false,
 							observedOutputMaxLength: MAX_LENGTH_STDOUT,
+							executionTimeForProcess,
 						};
 						process.stdout.write(
 							Buffer.from(JSON.stringify(response))
