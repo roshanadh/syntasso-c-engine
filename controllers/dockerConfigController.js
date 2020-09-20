@@ -10,18 +10,25 @@ const { respondWithError } = require("../util/templateResponses.js");
 const compilationErrorParser = require("../util/compilationErrorParser.js");
 const compilationWarningParser = require("../util/compilationWarningParser");
 
+let imageBuildTime = null,
+	containerCreateTime = null,
+	containerStartTime = null,
+	compilationTime = null;
+
 const handleConfigZero = (req, res) => {
 	const containerName = req.body.socketId;
 
 	const { socketInstance } = require("../server.js");
 
 	buildCImage(req, socketInstance)
-		.then(stdout => {
+		.then(buildLogs => {
 			console.log("C image built.");
+			imageBuildTime = buildLogs.imageBuildTime;
 			return createCContainer(req, socketInstance);
 		})
-		.then(stdout => {
+		.then(creationLogs => {
 			console.log(`C container ${containerName} created.`);
+			containerCreateTime = creationLogs.containerCreateTime;
 			return handleConfigOne(req, res);
 		})
 		.catch(error => {
@@ -38,8 +45,9 @@ const handleConfigOne = (req, res) => {
 	const { socketInstance } = require("../server.js");
 
 	startCContainer(req, socketInstance)
-		.then(stdout => {
+		.then(startLogs => {
 			console.log(`C container ${containerName} started.`);
+			containerStartTime = startLogs.containerStartTime;
 			return handleConfigTwo(req, res);
 		})
 		.catch(error => {
@@ -63,7 +71,6 @@ const handleConfigOne = (req, res) => {
 					);
 				}
 			}
-
 			return respondWithError(
 				res,
 				503,
@@ -79,14 +86,15 @@ const handleConfigTwo = (req, res) => {
 	const { socketInstance } = require("../server.js");
 
 	compileInCContainer(req, socketInstance)
-		.then(stdout => {
+		.then(compilationLogs => {
 			console.log(
 				`User's submission ${submissionFileName} compiled inside C container ${containerName}.`
 			);
-			// check if resolved stdout has any warning in it
-			if (stdout.warning) {
+			({ compilationTime } = compilationLogs);
+			// check if resolved compilationLogs has any warning in it
+			if (compilationLogs.warning) {
 				compilationWarnings = compilationWarningParser(
-					stdout.warning,
+					compilationLogs.warning,
 					containerName
 				);
 			}
@@ -94,12 +102,41 @@ const handleConfigTwo = (req, res) => {
 		})
 		.then(stdout => {
 			console.log(
-				`User's submission ${submissionFileName} executed inside C container ${containerName}.\nstdout: ${stdout}`
+				`User's submission ${submissionFileName} executed inside C container ${containerName}.\n`
 			);
-			res.status(200).json({
-				compilationWarnings,
-				output: JSON.parse(stdout).stdout,
-			});
+			let response = {};
+			switch (parseInt(req.body.dockerConfig)) {
+				case 0:
+					response = {
+						compilationWarnings,
+						error: null,
+						...stdout,
+						imageBuildTime,
+						containerCreateTime,
+						containerStartTime,
+						compilationTime,
+					};
+					break;
+				case 1:
+					response = {
+						compilationWarnings,
+						error: null,
+						...stdout,
+						containerStartTime,
+						compilationTime,
+					};
+					break;
+				case 2:
+					response = {
+						compilationWarnings,
+						error: null,
+						...stdout,
+						compilationTime,
+					};
+					break;
+			}
+			res.status(200).json(response);
+			return console.log("Response sent to the client:", response);
 		})
 		.catch(error => {
 			// caught error may be an error or an stderr rejected by ...
@@ -132,26 +169,94 @@ const handleConfigTwo = (req, res) => {
 							"Service unavailable due to server conditions"
 						);
 					}
+					({ compilationTime } = error);
+
 					// if no error occurred during parsing, respond with the parsed error
-					return res.status(200).json({
-						compilationWarnings,
-						error: {
-							...parsedError,
-						},
-					});
+					switch (parseInt(req.body.dockerConfig)) {
+						case 0:
+							response = {
+								compilationWarnings,
+								error: {
+									...parsedError,
+								},
+								imageBuildTime,
+								containerCreateTime,
+								containerStartTime,
+								compilationTime,
+							};
+							break;
+						case 1:
+							response = {
+								compilationWarnings,
+								error: {
+									...parsedError,
+								},
+								containerStartTime,
+								compilationTime,
+							};
+							break;
+						case 2:
+							response = {
+								compilationWarnings,
+								error: {
+									...parsedError,
+								},
+								compilationTime,
+							};
+							break;
+					}
+					res.status(200).json(response);
+					return console.log(
+						"Response sent to the client:",
+						response
+					);
 				} else if (
 					// check if runtime error
 					error.errorType &&
 					error.errorType === "runtime-error"
 				) {
 					// stderr was obtained during runtime
-					return res.status(200).json({
-						compilationWarnings,
-						error: {
-							errorType: error.errorType,
-							errorStack: error.stderr,
-						},
-					});
+					switch (parseInt(req.body.dockerConfig)) {
+						case 0:
+							response = {
+								compilationWarnings,
+								error: {
+									errorType: error.errorType,
+									errorStack: error.stderr,
+								},
+								imageBuildTime,
+								containerCreateTime,
+								containerStartTime,
+								compilationTime,
+							};
+							break;
+						case 1:
+							response = {
+								compilationWarnings,
+								error: {
+									errorType: error.errorType,
+									errorStack: error.stderr,
+								},
+								containerStartTime,
+								compilationTime,
+							};
+							break;
+						case 2:
+							response = {
+								compilationWarnings,
+								error: {
+									errorType: error.errorType,
+									errorStack: error.stderr,
+								},
+								compilationTime,
+							};
+							break;
+					}
+					res.status(200).json(response);
+					return console.log(
+						"Response sent to the client:",
+						response
+					);
 				}
 			}
 
@@ -197,6 +302,9 @@ module.exports = (req, res) => {
 		.catch(error => {
 			console.error(`error in dockerConfigController:`, error);
 			res.status(503).json({
+				error: "Service currently unavailable due to server conditions",
+			});
+			return console.log("Response sent to the client:", {
 				error: "Service currently unavailable due to server conditions",
 			});
 		});

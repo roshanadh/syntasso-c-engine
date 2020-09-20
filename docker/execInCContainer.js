@@ -1,9 +1,10 @@
 const { exec } = require("child_process");
-
-const { writeOutputToFile } = require("../filesystem/index.js");
+const { performance } = require("perf_hooks");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
+		let startTime = performance.now(),
+			executionTime = 0;
 		/*
 		 * @resolve
 		 * Always resolve the stdout as resolve(stdout)
@@ -26,54 +27,139 @@ module.exports = (req, socketInstance) => {
 				stdout: `Executing user's submission...`,
 			});
 
-			exec(
-				`docker exec -i ${containerName} node main-wrapper.js`,
-				(error, stdout, stderr) => {
-					if (error) {
+			const mainWrapper = exec(
+				`docker exec -ie socketId='${socketId}' ${containerName} node main-wrapper.js`
+			);
+			mainWrapper.stdout.on("data", stdout => {
+				executionTime = performance.now() - startTime;
+				console.log(
+					`stdout while executing submission inside container ${containerName}: ${stdout}`
+				);
+				try {
+					let stringOutput = stdout.toString();
+					let jsonOutput = JSON.parse(stringOutput);
+
+					if (jsonOutput.type === "test-status") {
+						// stdout is the test status for an individual test case
+						socketInstance.instance
+							.to(socketId)
+							.emit("test-status", {
+								...jsonOutput,
+							});
+					} else if (jsonOutput.type === "full-response") {
+						// stdout is the final response for user's submission
+
+						// remove "type" property from jsonOutput object before resolving
+						delete jsonOutput.type;
+						socketInstance.instance
+							.to(socketId)
+							.emit("docker-app-stdout", {
+								stdout: `User's submission executed`,
+							});
+						return resolve({ ...jsonOutput, executionTime });
+					} else {
 						console.error(
-							`error while executing submission inside container ${containerName}:`,
+							`New response type encountered in execInCContainer for socketId ${socketId}:`,
+							jsonOutput
+						);
+						socketInstance.instance
+							.to(socketId)
+							.emit("docker-app-stdout", {
+								stdout: `User's submission executed`,
+							});
+						return resolve({ ...jsonOutput, executionTime });
+					}
+				} catch (error) {
+					if (error.message.includes("Unexpected token { in JSON")) {
+						// this error happens because mainWrapper.stdout ...
+						// ... outputs a stream of JSON objects like:
+						// ... {}{}{}...
+						// we need to create an array of JSON objects: ...
+						// ... [{}, {}, {}, ...] in such a case
+						try {
+							console.log(
+								`Parsing stdout with adjoining JSON objects encountered for socketId ${socketId}`
+							);
+							let stream = stdout.toString().trim();
+							stream = stream.split("}{");
+							stream.forEach((element, index) => {
+								// add missing braces as .split("}{") removes ...
+								// ... every instance of "}{" in the stdout
+								if (index === 0) stream[index] = element + "}";
+								else if (index === stream.length - 1)
+									stream[index] = "{" + element;
+								else stream[index] = "{" + element + "}";
+								// parse JSON and create an array of JSON objects
+								stream[index] = JSON.parse(stream[index]);
+								// if stream[index] is a test-status type JSON, emit:
+								if (
+									stream[index].type &&
+									stream[index].type === "test-status"
+								) {
+									socketInstance.instance
+										.to(socketId)
+										.emit("test-status", {
+											...stream[index],
+										});
+								} else {
+									// stream[index].type === "full-response"
+									// this is the full response body, so resolve it
+
+									// remove "type" property from stream[index] object before resolving
+									delete stream[index].type;
+									socketInstance.instance
+										.to(socketId)
+										.emit("docker-app-stdout", {
+											stdout: `User's submission executed`,
+										});
+									return resolve({
+										...stream[index],
+										executionTime,
+									});
+								}
+							});
+						} catch (err) {
+							console.error(
+								`Error while parsing stdout with adjoining JSON objects in execInCContainer for socketId ${socketId}:`,
+								err
+							);
+							return reject({
+								err,
+							});
+						}
+					} else {
+						console.error(
+							`Error in execInCContainer for socketId ${socketId}:`,
 							error
 						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `error while executing submission`,
-							});
-						return reject({ error });
-					} else if (stderr) {
-						stderr = JSON.parse(stderr);
-						console.error(
-							`stderr while executing submission inside container ${containerName}:`,
-							stderr.stderr
-						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `stderr while executing submission: ${stderr.stderr}`,
-							});
 						return reject({
-							stderr: stderr.stderr,
-							errorType: "runtime-error",
+							error,
 						});
 					}
-					console.log(
-						`stdout while executing submission inside container ${containerName}: ${stdout}`
-					);
-					socketInstance.instance
-						.to(socketId)
-						.emit("docker-app-stdout", {
-							stdout: `User's submission executed`,
-						});
-					//  write output to client-files/outputs/${socketId}.txt
-					writeOutputToFile(socketId, stdout)
-						.then(() => resolve(stdout))
-						.catch(error => {
-							return reject({ error });
-						});
 				}
-			);
+			});
+			mainWrapper.stderr.on("data", stderr => {
+				stderr = JSON.parse(stderr.toString());
+				console.error(
+					`stderr while executing submission inside container ${containerName}:`,
+					stderr
+				);
+				socketInstance.instance.to(socketId).emit("docker-app-stdout", {
+					stdout: `stderr while executing submission`,
+				});
+				return reject({
+					stderr,
+					errorType: "runtime-error",
+				});
+			});
 		} catch (error) {
-			console.log(`error during execInCContainer:`, error);
+			console.error(
+				`error while executing submission inside container ${containerName}:`,
+				error
+			);
+			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
+				stdout: `error while executing submission`,
+			});
 			return reject({ error });
 		}
 	});

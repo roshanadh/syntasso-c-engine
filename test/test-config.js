@@ -10,7 +10,7 @@ const expect = chai.expect;
 
 chai.use(chaiHttp);
 
-console.log = msg => {};
+// console.log = msg => {};
 
 let socket;
 

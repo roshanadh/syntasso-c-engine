@@ -1,10 +1,12 @@
 const { exec } = require("child_process");
+const { performance } = require("perf_hooks");
 
 const copyClientFilesToCContainer = require("./copyClientFilesToCContainer");
 const isFatalGCCWarning = require("../util/isFatalGCCWarning.js");
 
 const compileSubmission = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
+		let compilationTime = performance.now();
 		/*
 		 * @resolve
 		 * Always resolve the stdout as resolve(stdout)
@@ -27,12 +29,19 @@ const compileSubmission = (req, socketInstance) => {
 			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
 				stdout: `Compiling user's submission...`,
 			});
-
-			// compile submission using -Wall flag that enables some warnings
-			// check more GCC warning options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+			/*
+			 * Flags used in compilation:
+			 * -Wall: enables some warnings
+			 * -Wfatal-errors: stops compilation after a fatal error has occurred
+			 * -Werror=div-by-zero: stops compilation for a div-by-zero warning, so ...
+			 * ... division by zero is now a compilation error
+			 *
+			 * check more GCC warning options: https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
+			 */
 			exec(
-				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission -Wall -Wfatal-errors`,
+				`docker exec -i ${containerName} gcc ${submissionFileName} -o submission -Wall -Wfatal-errors -Werror=div-by-zero`,
 				(error, stdout, stderr) => {
+					compilationTime = performance.now() - compilationTime;
 					// compilation error is received as error as well as an stderr
 					if (stderr) {
 						console.error(
@@ -63,7 +72,10 @@ const compileSubmission = (req, socketInstance) => {
 									stdout: `warning while compiling submission: ${stderr}`,
 								});
 							// if the warning is not fatal, resolve the warning
-							return resolve({ warning: stderr });
+							return resolve({
+								warning: stderr,
+								compilationTime,
+							});
 						} else {
 							// this block executes if the warning is fatal or if there's ...
 							// ... no warning in the stderr
@@ -75,6 +87,7 @@ const compileSubmission = (req, socketInstance) => {
 							return reject({
 								stderr,
 								errorType: "compilation-error",
+								compilationTime,
 							});
 						}
 					} else if (error) {
@@ -105,7 +118,7 @@ const compileSubmission = (req, socketInstance) => {
 						.emit("docker-app-stdout", {
 							stdout: `User's submission compiled`,
 						});
-					return resolve(stdout);
+					return resolve({ stdout, compilationTime });
 				}
 			);
 		} catch (error) {

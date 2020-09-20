@@ -4,7 +4,7 @@
 	"description": "C compilation engine for Syntasso",
 	"main": "server.js",
 	"scripts": {
-		"test": "NODE_ENV=test mocha $(find test -name '*.test.js') --sort --timeout 100000 --exit",
+		"test": "NODE_ENV=test mocha $(find test -name '*.test.js') --sort --timeout 120000 --exit",
 		"start:dev": "NODE_ENV=dev nodemon server.js"
 	},
 	"repository": {

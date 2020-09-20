@@ -43,10 +43,18 @@ module.exports = (req, res, next) => {
 		default:
 			break;
 	}
-	if (!testCasesValidator(req))
-		return res.status(400).json({
-			error: "No test cases provided",
-		});
+	switch (testCasesValidator(req)) {
+		case "no-test-cases":
+			return res.status(400).json({
+				error: "No test cases provided",
+			});
+		case "not-an-array":
+			return res.status(400).json({
+				error: "testCases should be an array",
+			});
+		default:
+			break;
+	}
 	initDirectories(req.session.socketId)
 		.then(() => generateTestFiles(req))
 		.then(() => next())
