@@ -93,14 +93,7 @@ try {
 					} else {
 						// stderr was generated during the execution, so parse error ...
 						// ... from stderr
-						process.stderr.write(
-							Buffer.from(
-								JSON.stringify({
-									type: "stderr",
-									...stderr,
-								})
-							)
-						);
+						process.stderr.write(Buffer.from(stderr));
 					}
 				} catch (err) {
 					throw new Error(err);
@@ -122,10 +115,13 @@ const main = () => {
 	for (let i = 0; i < len_sampleInputs; i++) {
 		try {
 			let startTime = performance.now();
-			const cProcess = spawnSync("./submission", {
-				input: writeToStdin(sampleInputs.files[i]),
-				timeout: EXECUTION_TIME_OUT_IN_MS,
-			});
+			const cProcess = spawnSync(
+				"./submission",
+				[passSampleInputsAsArg(sampleInputs.files[i])],
+				{
+					timeout: EXECUTION_TIME_OUT_IN_MS,
+				}
+			);
 			executionTimesForProcesses[i] = performance.now() - startTime;
 			const io = cProcess.output;
 			const stdout =
@@ -173,14 +169,7 @@ const main = () => {
 				);
 			} else {
 				// stderr was generated, so parse error from stderr
-				process.stderr.write(
-					Buffer.from(
-						JSON.stringify({
-							type: "stderr",
-							...stderr,
-						})
-					)
-				);
+				process.stderr.write(Buffer.from(stderr));
 			}
 		} catch (err) {
 			process.stderr.write(
@@ -201,13 +190,8 @@ const main = () => {
 	);
 };
 
-const writeToStdin = sampleInput => {
+const passSampleInputsAsArg = sampleInput => {
+	// pass sample inputs as command-line arguments
 	sampleInputFileContents = sampleInputs.fileContents[sampleInput].toString();
-	sampleInputFileContents = sampleInputFileContents.split("\n");
-	sampleInputFileContents = JSON.stringify(sampleInputFileContents);
-
-	return JSON.stringify({
-		sampleInputId: sampleInput,
-		fileContents: sampleInputFileContents,
-	});
+	return sampleInputFileContents;
 };
