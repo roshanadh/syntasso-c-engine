@@ -21,9 +21,9 @@ const readTestFiles = require("./read-test-files.js");
 const socketId = process.env.socketId.trim();
 
 // execution of each submission file times out after a certain period
-const EXECUTION_TIME_OUT_IN_MS = 2000;
+const EXECUTION_TIME_OUT_IN_MS = parseInt(process.env.EXECUTION_TIME_OUT_IN_MS);
 // max length of stdout for each cProcess
-const MAX_LENGTH_STDOUT = 2000;
+const MAX_LENGTH_STDOUT = parseInt(process.env.MAX_LENGTH_STDOUT);
 
 let sampleInputs,
 	expectedOutputs,
