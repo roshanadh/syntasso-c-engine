@@ -1,10 +1,6 @@
 const { exec } = require("child_process");
 const { performance } = require("perf_hooks");
-const {
-	EXECUTION_TIME_OUT_IN_MS,
-	MAX_LENGTH_STDOUT,
-	SAMPLE_INPUT_MAX_LINES,
-} = require("../config");
+const { EXECUTION_TIME_OUT_IN_MS, MAX_LENGTH_STDOUT } = require("../config");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
@@ -33,14 +29,7 @@ module.exports = (req, socketInstance) => {
 			});
 
 			const mainWrapper = exec(
-				`docker exec -ie socketId='${socketId}' ${containerName} node main-wrapper.js`,
-				{
-					env: {
-						EXECUTION_TIME_OUT_IN_MS: EXECUTION_TIME_OUT_IN_MS,
-						MAX_LENGTH_STDOUT: MAX_LENGTH_STDOUT,
-						SAMPLE_INPUT_MAX_LINES: SAMPLE_INPUT_MAX_LINES,
-					},
-				}
+				`docker exec -i -e socketId='${socketId}' -e EXECUTION_TIME_OUT_IN_MS='${EXECUTION_TIME_OUT_IN_MS}' -e MAX_LENGTH_STDOUT='${MAX_LENGTH_STDOUT}' ${containerName} node main-wrapper.js`
 			);
 			mainWrapper.stdout.on("data", stdout => {
 				executionTime = performance.now() - startTime;
