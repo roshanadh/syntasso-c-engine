@@ -139,7 +139,7 @@ module.exports = (req, socketInstance) => {
 				}
 			});
 			mainWrapper.stderr.on("data", stderr => {
-				stderr = JSON.parse(stderr.toString());
+				stderr = stderr.toString();
 				console.error(
 					`stderr while executing submission inside container ${containerName}:`,
 					stderr
