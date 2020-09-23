@@ -21,9 +21,9 @@ const readTestFiles = require("./read-test-files.js");
 const socketId = process.env.socketId.trim();
 
 // execution of each submission file times out after a certain period
-const EXECUTION_TIME_OUT_IN_MS = 2000;
+const EXECUTION_TIME_OUT_IN_MS = parseInt(process.env.EXECUTION_TIME_OUT_IN_MS);
 // max length of stdout for each cProcess
-const MAX_LENGTH_STDOUT = 2000;
+const MAX_LENGTH_STDOUT = parseInt(process.env.MAX_LENGTH_STDOUT);
 
 let sampleInputs,
 	expectedOutputs,
@@ -93,14 +93,7 @@ try {
 					} else {
 						// stderr was generated during the execution, so parse error ...
 						// ... from stderr
-						process.stderr.write(
-							Buffer.from(
-								JSON.stringify({
-									type: "stderr",
-									...stderr,
-								})
-							)
-						);
+						process.stderr.write(Buffer.from(stderr));
 					}
 				} catch (err) {
 					throw new Error(err);
@@ -122,10 +115,13 @@ const main = () => {
 	for (let i = 0; i < len_sampleInputs; i++) {
 		try {
 			let startTime = performance.now();
-			const cProcess = spawnSync("./submission", {
-				input: writeToStdin(sampleInputs.files[i]),
-				timeout: EXECUTION_TIME_OUT_IN_MS,
-			});
+			const cProcess = spawnSync(
+				"./submission",
+				[passSampleInputsAsArg(sampleInputs.files[i])],
+				{
+					timeout: EXECUTION_TIME_OUT_IN_MS,
+				}
+			);
 			executionTimesForProcesses[i] = performance.now() - startTime;
 			const io = cProcess.output;
 			const stdout =
@@ -173,14 +169,7 @@ const main = () => {
 				);
 			} else {
 				// stderr was generated, so parse error from stderr
-				process.stderr.write(
-					Buffer.from(
-						JSON.stringify({
-							type: "stderr",
-							...stderr,
-						})
-					)
-				);
+				process.stderr.write(Buffer.from(stderr));
 			}
 		} catch (err) {
 			process.stderr.write(
@@ -201,13 +190,8 @@ const main = () => {
 	);
 };
 
-const writeToStdin = sampleInput => {
+const passSampleInputsAsArg = sampleInput => {
+	// pass sample inputs as command-line arguments
 	sampleInputFileContents = sampleInputs.fileContents[sampleInput].toString();
-	sampleInputFileContents = sampleInputFileContents.split("\n");
-	sampleInputFileContents = JSON.stringify(sampleInputFileContents);
-
-	return JSON.stringify({
-		sampleInputId: sampleInput,
-		fileContents: sampleInputFileContents,
-	});
+	return sampleInputFileContents;
 };
