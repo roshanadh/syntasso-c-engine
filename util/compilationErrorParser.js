@@ -36,10 +36,52 @@ module.exports = (stderr, socketId) => {
 			errorStack = stderr,
 			errorMessage = null,
 			errorType = "compilation-error";
-		// extract lineNumber and columnNumber by first ...
-		// searching for substring "s-02c34e5658faf8e781.c:5:2:"
-		let substringRegex = new RegExp(`(${socketId}.c:\\d+:\\d+: )`);
+		/*
+		 * In a simple error stack, as well as a combined error stack such as, ...
+		 * ... the 'error' keyword may appear as:
+		 * s-0ad12537ccabc9d4c3.c:10:12: error: division by zero [-Werror=div-by-zero]
+		 *      div = n/0;\ +
+		 *             ^ +
+		 * compilation terminated due to -Wfatal-errors.
+		 * cc1: some warnings being treated as errors,
+		 *
+		 */
+		// search for substring "s-02c34e5658faf8e781.c:5:2: error"
+		let substringRegex = new RegExp(`(${socketId}.c:\\d+:\\d+: error: )`);
 		let matchedString = stderr.match(substringRegex);
+		if (matchedString) {
+			let header = matchedString[0];
+			// header = "s-02c34e5658faf8e781.c:5:2: error: "
+			let index = matchedString.index;
+			lineNumber = header.split(":")[1];
+			columnNumber = header.split(":")[2];
+
+			let errorMessageFromLinkerError = checkForLinkerError(
+				stderr,
+				socketId
+			);
+			if (errorMessageFromLinkerError) {
+				errorMessage = errorMessageFromLinkerError;
+				errorType = "linker-error";
+			} else {
+				// use other error message as no Linker Error message exists in stderr
+				errorMessage = stderr
+					.substring(index + header.length)
+					.split("\n")[0];
+			}
+			return {
+				lineNumber,
+				columnNumber,
+				errorMessage,
+				errorStack,
+				errorType,
+			};
+		}
+		// if no 'error' keyword was found:
+		// extract lineNumber and columnNumber by first ...
+		// searching for substring "s-02c34e5658faf8e781.c:5:2: "
+		substringRegex = new RegExp(`(${socketId}.c:\\d+:\\d+: )`);
+		matchedString = stderr.match(substringRegex);
 		if (matchedString) {
 			let header = matchedString[0];
 			// header = "s-02c34e5658faf8e781.c:5:2:"
