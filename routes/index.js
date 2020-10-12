@@ -1,6 +1,6 @@
 const router = require("express").Router();
 
-const paramValidator = require("../middlewares/paramValidator.js");
+const { paramValidator, errorHandler } = require("../middlewares/index.js");
 const submitController = require("../controllers/submitController.js");
 
 router.get("/", (req, res) => {
@@ -8,5 +8,7 @@ router.get("/", (req, res) => {
 });
 
 router.post("/submit", paramValidator, submitController);
+
+router.use(errorHandler);
 
 module.exports = router;
