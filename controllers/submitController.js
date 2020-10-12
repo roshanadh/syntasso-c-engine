@@ -2,8 +2,8 @@ const {
 	handleConfigZero,
 	handleConfigOne,
 	handleConfigTwo,
-} = require("../handlers/dockerConfigHandlers.js");
-const { respondWithError } = require("../util/templateResponses");
+	handle403Response,
+} = require("../handlers/index.js");
 const {
 	initDirectories,
 	generateTestFiles,
@@ -12,28 +12,40 @@ const generateSubmissionFile = require("../filesystem/generateSubmissionFile.js"
 
 module.exports = (req, res, next) => {
 	initDirectories(req.session.socketId)
-		.then(() => generateTestFiles(req))
 		.then(() => generateSubmissionFile(req))
+		.then(() => generateTestFiles(req))
 		.then(() => {
 			const dockerConfig = parseInt(req.body.dockerConfig);
 			switch (dockerConfig) {
 				case 0:
-					handleConfigZero(req, res);
+					// pass empty object as "times" argument, since no times ...
+					// ... have been recorded as of yet
+					handleConfigZero(req, res, next, {});
 					break;
 				case 1:
-					handleConfigOne(req, res);
+					// pass empty object as "times" argument, since no times ...
+					// ... have been recorded as of yet
+					handleConfigOne(req, res, next, {});
 					break;
 				case 2:
-					handleConfigTwo(req, res);
+					// pass empty object as "times" argument, since no times ...
+					// ... have been recorded as of yet
+					handleConfigTwo(req, res, next, {});
 					break;
 			}
 		})
 		.catch(error => {
 			console.error(`error in submitController:`, error);
-			respondWithError(
-				res,
-				503,
-				"Service unavailable due to server conditions"
-			);
+			/*
+			 * error.errorInGenerateTestFiles exists if some error occurred mid-generation of ...
+			 * ... test files
+			 */
+			if (error.errorInGenerateTestFiles) {
+				return handle403Response(
+					res,
+					"Re-request with both sampleInput and expectedOutput in each dictionary of testCases array"
+				);
+			}
+			next(error);
 		});
 };
