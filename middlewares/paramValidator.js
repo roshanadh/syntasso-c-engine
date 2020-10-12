@@ -1,4 +1,4 @@
-module.exports.socketValidator = req => {
+const socketIdValidator = req => {
 	const { socketInstance } = require("../server.js");
 	const listOfClients = Object.keys(socketInstance.instance.sockets.sockets);
 
@@ -7,9 +7,9 @@ module.exports.socketValidator = req => {
 	req.session.socketId = req.body.socketId;
 };
 
-module.exports.codeValidator = req => (req.body.code ? true : false);
+const codeValidator = req => (req.body.code ? true : false);
 
-module.exports.dockerConfigValidator = req => {
+const dockerConfigValidator = req => {
 	if (!req.body.dockerConfig) return "no-config";
 	else if (isNaN(req.body.dockerConfig)) return "NaN";
 	else if (![0, 1, 2].includes(parseInt(req.body.dockerConfig)))
@@ -17,7 +17,7 @@ module.exports.dockerConfigValidator = req => {
 	else return "ok";
 };
 
-module.exports.testCasesValidator = req => {
+const testCasesValidator = req => {
 	if (!req.body.testCases || req.body.testCases.length === 0)
 		return "no-test-cases";
 	/*
@@ -38,4 +38,53 @@ module.exports.testCasesValidator = req => {
 	req.body.testCases = JSON.parse(testCases);
 	if (!Array.isArray(req.body.testCases)) return "not-an-array";
 	return "ok";
+};
+
+module.exports = (req, res, next) => {
+	switch (socketIdValidator(req)) {
+		case "no-socket":
+			return res.status(400).json({
+				error: "No socket ID provided",
+			});
+		case "unknown-socket":
+			return res.status(401).json({
+				error: "Socket ID not recognized",
+			});
+		default:
+			break;
+	}
+	if (!codeValidator(req))
+		return res.status(400).json({
+			error: "No code provided",
+		});
+	switch (dockerConfigValidator(req)) {
+		case "no-config":
+			return res.status(400).json({
+				error: "No dockerConfig provided",
+			});
+		case "NaN":
+			return res.status(400).json({
+				error: "dockerConfig should be a number; got NaN",
+			});
+		case "no-valid-config":
+			return res.status(400).json({
+				error: "dockerConfig should be one of [0, 1, 2]",
+			});
+		default:
+			break;
+	}
+	switch (testCasesValidator(req)) {
+		case "no-test-cases":
+			return res.status(400).json({
+				error: "No test cases provided",
+			});
+		case "not-an-array":
+			return res.status(400).json({
+				error: "testCases should be an array",
+			});
+		default:
+			break;
+	}
+
+	next();
 };

@@ -1,48 +1,35 @@
 const { exec } = require("child_process");
 
 const removeCContainer = require("./removeCContainer.js");
-const convertTimeToMs = require("../util/convertTimeToMs.js");
-
+const { convertTimeToMs } = require("../util/index.js");
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
-		/*
-		 * @resolve
-		 * Always resolve the stdout as resolve(stdout)
-		 *
-		 * @reject
-		 * Reject the error and stderr values as keys in a JSON object ...
-		 * ... that is, as reject({ error }) and reject({ stderr })
-		 * This is because when catching rejections with .catch(error) in ...
-		 * ... dockerConfigController's functions, we can see if the caught error ...
-		 * ... is an error or an stderr with if (error.error) and if (error.stderr)
-		 */
 		try {
 			const { socketId } = req.body;
-			const containerName = socketId;
-
-			let containerCreateTime;
-			removeCContainer(containerName)
-				.then(stdout => {
-					console.log(
-						`Creating a C container named ${containerName}...`
-					);
+			removeCContainer(socketId)
+				.then(removalLogs => {
+					console.log("Creating a C container...");
 					socketInstance.instance
 						.to(socketId)
 						.emit("docker-app-stdout", {
-							stdout: `Creating a C container...`,
+							stdout: "Creating a C container...",
 						});
-
+					let containerCreateTime;
 					exec(
-						`time docker create -it --name ${containerName} img_c`,
+						`time docker create -it --name ${socketId} img_c`,
 						{ shell: "/bin/bash" },
 						(error, stdout, stderr) => {
 							if (error) {
 								console.error(
-									`error during C container creation:`,
+									"Error while creating C container:",
 									error
 								);
+								// reject an object with keys error or stderr, because this ...
+								// ... makes it easier to check later if an error occurred ...
+								// ... or an stderr was generated during the creation process
 								return reject({ error });
-							} else if (stderr) {
+							}
+							if (stderr) {
 								let times;
 								/*
 								 * 'time' command returns the real(total), user, and sys(system) ...
@@ -63,6 +50,20 @@ module.exports = (req, socketInstance) => {
 									containerCreateTime = times[1].split(
 										"\t"
 									)[1];
+									console.log(
+										`stdout during C container creation: ${stdout}`
+									);
+									console.log("C container created.");
+									socketInstance.instance
+										.to(socketId)
+										.emit("docker-app-stdout", {
+											stdout: `stdout during C container creation: ${stdout}`,
+										});
+									socketInstance.instance
+										.to(socketId)
+										.emit("docker-app-stdout", {
+											stdout: "C container created.",
+										});
 									return resolve({
 										stdout,
 										containerCreateTime: convertTimeToMs(
@@ -72,33 +73,28 @@ module.exports = (req, socketInstance) => {
 								} catch (err) {
 									// stderr contains an actual error and not execution times
 									console.error(
-										`stderr during C container creation:`,
+										"stderr while creating C container:",
 										stderr
 									);
-									return reject({
-										stderr,
-									});
+									socketInstance.instance
+										.to(socketId)
+										.emit("docker-app-stdout", {
+											stdout: `stderr while creating C container: ${stderr}`,
+										});
+									// reject an object with keys error or stderr, because this ...
+									// ... makes it easier to check later if an error occurred ...
+									// ... or an stderr was generated during the creation process
+									return reject({ stderr });
 								}
 							}
-							if (stdout.trim() !== "")
-								console.log(
-									`stdout during C container creation: ${stdout}`
-								);
-
-							socketInstance.instance
-								.to(socketId)
-								.emit("docker-app-stdout", {
-									stdout: `C container created`,
-								});
-							return resolve(stdout);
 						}
 					);
 				})
 				.catch(error => {
-					reject({ error });
+					return reject(error);
 				});
 		} catch (error) {
-			console.log(`error during createCContainer:`, error);
+			console.error("Error in createCContainer:", error);
 			return reject({ error });
 		}
 	});
