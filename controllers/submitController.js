@@ -1,64 +1,35 @@
 const {
-	socketValidator,
-	codeValidator,
-	dockerConfigValidator,
-	testCasesValidator,
-} = require("../middlewares/paramValidator.js");
+	handleConfigZero,
+	handleConfigOne,
+	handleConfigTwo,
+} = require("../handlers/dockerConfigHandlers.js");
 const { respondWithError } = require("../util/templateResponses");
 const {
 	initDirectories,
 	generateTestFiles,
 } = require("../filesystem/index.js");
+const generateSubmissionFile = require("../filesystem/generateSubmissionFile.js");
 
 module.exports = (req, res, next) => {
-	switch (socketValidator(req)) {
-		case "no-socket":
-			return res.status(400).json({
-				error: "No socket ID provided",
-			});
-		case "unknown-socket":
-			return res.status(401).json({
-				error: "Socket ID not recognized",
-			});
-		default:
-			break;
-	}
-	if (!codeValidator(req))
-		return res.status(400).json({
-			error: "No code provided",
-		});
-	switch (dockerConfigValidator(req)) {
-		case "no-config":
-			return res.status(400).json({
-				error: "No dockerConfig provided",
-			});
-		case "NaN":
-			return res.status(400).json({
-				error: "dockerConfig should be a number; got NaN",
-			});
-		case "no-valid-config":
-			return res.status(400).json({
-				error: "dockerConfig should be one of [0, 1, 2]",
-			});
-		default:
-			break;
-	}
-	switch (testCasesValidator(req)) {
-		case "no-test-cases":
-			return res.status(400).json({
-				error: "No test cases provided",
-			});
-		case "not-an-array":
-			return res.status(400).json({
-				error: "testCases should be an array",
-			});
-		default:
-			break;
-	}
 	initDirectories(req.session.socketId)
 		.then(() => generateTestFiles(req))
-		.then(() => next())
+		.then(() => generateSubmissionFile(req))
+		.then(() => {
+			const dockerConfig = parseInt(req.body.dockerConfig);
+			switch (dockerConfig) {
+				case 0:
+					handleConfigZero(req, res);
+					break;
+				case 1:
+					handleConfigOne(req, res);
+					break;
+				case 2:
+					handleConfigTwo(req, res);
+					break;
+			}
+		})
 		.catch(error => {
+			console.error(`error in submitController:`, error);
 			respondWithError(
 				res,
 				503,
