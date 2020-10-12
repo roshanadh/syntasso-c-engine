@@ -24,8 +24,18 @@ class Socket {
 					`\nDISCONNECT: Socket disconnected with id ${socket.id}`
 				);
 				console.log(`REASON: ${reason}\n`);
-				removeCContainer(socket.id);
-				cleanUpTempFiles(socket.id);
+				removeCContainer(socket.id).catch(error =>
+					console.error(
+						`Error during container cleanup after socket ${socket.id} disconnection:`,
+						error
+					)
+				);
+				cleanUpTempFiles(socket.id).catch(error =>
+					console.error(
+						`Error during client-files/ cleanup after socket ${socket.id} disconnection:`,
+						error
+					)
+				);
 			});
 		});
 	}
