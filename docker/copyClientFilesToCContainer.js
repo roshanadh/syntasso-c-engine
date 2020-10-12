@@ -1,64 +1,51 @@
-const { exec } = require("child_process");
 const path = require("path");
+const { exec } = require("child_process");
 
-module.exports = (req, socketInstance) => {
+module.exports = req => {
 	return new Promise((resolve, reject) => {
 		try {
-			const { socketId } = req.body;
-			const containerName = socketId;
-
-			console.log(`Copying client files to container ${containerName}`);
-			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
-				stdout: `Copying client files to container...`,
-			});
-
+			const { socketId } = req.session;
+			console.log("Copying client-files/ to container...");
 			const localPath = path.resolve(
 				__dirname,
 				"..",
 				"client-files",
 				socketId
 			);
-
 			exec(
-				`docker cp ${localPath}/. ${containerName}:/usr/src/sandbox/`,
+				`docker cp ${localPath}/. ${socketId}:/usr/src/sandbox/`,
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
-							`error while copying client files to container ${containerName}:`,
+							`Error while copying client-files/ to container ${socketId}:`,
 							error
 						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `error while copying client files`,
-							});
+						// reject an object with keys error or stderr, because this ...
+						// ... makes it easier to check later if an error occurred ...
+						// ... or an stderr was generated during the copying process
 						return reject({ error });
-					} else if (stderr) {
+					}
+					if (stderr) {
 						console.error(
-							`stderr while copying client files to container ${containerName}:`,
+							`stderr while copying client-files/ to container ${socketId}:`,
 							stderr
 						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `stderr while copying client files: ${stderr}`,
-							});
+						// reject an object with keys error or stderr, because this ...
+						// ... makes it easier to check later if an error occurred ...
+						// ... or an stderr was generated during the copying process
 						return reject({ stderr });
 					}
-					if (stdout.trim() !== "")
-						console.log(
-							`stdout while copying client files to container ${containerName}: ${stdout}`
-						);
-					socketInstance.instance
-						.to(socketId)
-						.emit("docker-app-stdout", {
-							stdout: `client files copied`,
-						});
+					console.log(
+						`stdout after copying client-files/ to container ${socketId}: ${stdout}`
+					);
+					console.log(
+						`client-files/ copied to container ${socketId}`
+					);
 					return resolve(stdout);
 				}
 			);
 		} catch (error) {
-			console.log(`error during copySubmissionToCContainer:`, error);
+			console.error("Error in copyClientFilesToCContainer:", error);
 			return reject({ error });
 		}
 	});
