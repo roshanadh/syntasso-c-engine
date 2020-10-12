@@ -1,7 +1,8 @@
 const { exec } = require("child_process");
 const { performance } = require("perf_hooks");
 
-const copyClientFilesToCContainer = require("./copyClientFilesToCContainer");
+const removeClientFilesFromCContainer = require("./removeClientFilesFromCContainer.js");
+const copyClientFilesToCContainer = require("./copyClientFilesToCContainer.js");
 const isFatalGCCWarning = require("../util/isFatalGCCWarning.js");
 
 const compileSubmission = (req, socketInstance) => {
@@ -130,7 +131,8 @@ const compileSubmission = (req, socketInstance) => {
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
-		copyClientFilesToCContainer(req, socketInstance)
+		removeClientFilesFromCContainer(req.body.socketId)
+			.then(() => copyClientFilesToCContainer(req, socketInstance))
 			.then(stdout => {
 				return compileSubmission(req, socketInstance);
 			})
