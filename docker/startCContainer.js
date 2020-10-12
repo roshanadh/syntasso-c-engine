@@ -1,41 +1,30 @@
 const { exec } = require("child_process");
 
-const convertTimeToMs = require("../util/convertTimeToMs.js");
-
+const { convertTimeToMs } = require("../util/index.js");
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
-		/*
-		 * @resolve
-		 * Always resolve the stdout as resolve(stdout)
-		 *
-		 * @reject
-		 * Reject the error and stderr values as keys in a JSON object ...
-		 * ... that is, as reject({ error }) and reject({ stderr })
-		 * This is because when catching rejections with .catch(error) in ...
-		 * ... dockerConfigController's functions, we can see if the caught error ...
-		 * ... is an error or an stderr with if (error.error) and if (error.stderr)
-		 */
 		try {
 			const { socketId } = req.body;
-			const containerName = socketId;
-
-			let containerStartTime;
-			console.log(`Starting a C container named ${containerName}...`);
+			console.log("Starting C container...");
 			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
-				stdout: `Starting the C container...`,
+				stdout: "Starting C container...",
 			});
-
+			let containerStartTime;
 			exec(
-				`time docker container start ${containerName}`,
+				`time docker container start ${socketId}`,
 				{ shell: "/bin/bash" },
 				(error, stdout, stderr) => {
 					if (error) {
 						console.error(
-							`error while starting container ${containerName}:`,
+							"Error while starting C container:",
 							error
 						);
+						// reject an object with keys error or stderr, because this ...
+						// ... makes it easier to check later if an error occurred ...
+						// ... or an stderr was generated during the starting process
 						return reject({ error });
-					} else if (stderr) {
+					}
+					if (stderr) {
 						let times;
 						/*
 						 * 'time' command returns the real(total), user, and sys(system) ...
@@ -54,6 +43,20 @@ module.exports = (req, socketInstance) => {
 							times = stderr.split("\n");
 							// get build time in terms of 0m.000s
 							containerStartTime = times[1].split("\t")[1];
+							console.log(
+								`stdout during C container start: ${stdout}`
+							);
+							console.log("C container started.");
+							socketInstance.instance
+								.to(socketId)
+								.emit("docker-app-stdout", {
+									stdout: `stdout during C container start: ${stdout}`,
+								});
+							socketInstance.instance
+								.to(socketId)
+								.emit("docker-app-stdout", {
+									stdout: "C container started.",
+								});
 							return resolve({
 								stdout,
 								containerStartTime: convertTimeToMs(
@@ -63,26 +66,24 @@ module.exports = (req, socketInstance) => {
 						} catch (err) {
 							// stderr contains an actual error and not execution times
 							console.error(
-								`stderr while starting container ${containerName}:`,
+								"stderr while starting C container:",
 								stderr
 							);
+							socketInstance.instance
+								.to(socketId)
+								.emit("docker-app-stdout", {
+									stdout: `stderr while starting C container: ${stderr}`,
+								});
+							// reject an object with keys error or stderr, because this ...
+							// ... makes it easier to check later if an error occurred ...
+							// ... or an stderr was generated during the starting process
 							return reject({ stderr });
 						}
 					}
-					if (stdout.trim() !== "")
-						console.log(
-							`stdout while starting container ${containerName}: ${stdout}`
-						);
-					socketInstance.instance
-						.to(socketId)
-						.emit("docker-app-stdout", {
-							stdout: `C container started`,
-						});
-					return resolve(stdout);
 				}
 			);
 		} catch (error) {
-			console.log(`error during startCContainer:`, error);
+			console.error("Error in startCContainer:", error);
 			return reject({ error });
 		}
 	});

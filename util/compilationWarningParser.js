@@ -1,18 +1,18 @@
 module.exports = (stderr, socketId) => {
-	// Parses compilation warnings encountered in compileInCContainer process
+	// Parses compilation warnings encountered in compileInCppContainer process
 	/*
 	 * compilation warnings sample:
-	 * s-8f499484e8381f0725.c: In function 'main':
-	 * s-8f499484e8381f0725.c:3:12: warning: division by zero [-Wdiv-by-zero]
-	 *  int a = 10 /0;
-	 *             ^
-	 * s-8f499484e8381f0725.c:3:5: warning: unused variable 'a' [-Wunused-variable]
-	 *  int a = 10 /0;
+	 * In function 'int main()':
+	 * s-5acd159664c5437161.c:5:5: warning: unused variable 'a' [-Wunused-variable]
+	 *  int a = 6;
+	 *      ^
+	 * s-5acd159664c5437161.c:6:5: warning: unused variable 'b' [-Wunused-variable]
+	 *  int b = 10;
 	 *      ^
 	 *
 	 * Here we see two warnings in the same stderr
 	 * We need to parse two warning objects from the above stderr, each ...
-	 * ... separated by regex /(s-8f499484e8381f0725.c:\d+:\d+:)/g
+	 * ... separated by regex /(s-5acd159664c5437161.c:\d+:\d+:)/g
 	 */
 	try {
 		const warningRegex = new RegExp(
@@ -24,8 +24,8 @@ module.exports = (stderr, socketId) => {
 		/*
 		 * At the end of this forEach block, ...
 		 * matches = [
-		 * 	{ header: 's-8f499484e8381f0725.c:3:12: warning: ', index: 44 },
-		 * 	{ header: 's-8f499484e8381f0725.c:3:5: warning: ', index: 145 }
+		 * 	{ header: 's-5acd159664c5437161.c:3:12: warning: ', index: 44 },
+		 * 	{ header: 's-5acd159664c5437161.c:3:5: warning: ', index: 145 }
 		 * ]
 		 */
 		matches.forEach((match, index) => {
@@ -63,8 +63,8 @@ module.exports = (stderr, socketId) => {
 				};
 			} else {
 				warnings[i] = {
-					lineNumber,
-					columnNumber,
+					lineNumber: parseInt(lineNumber),
+					columnNumber: parseInt(columnNumber),
 					warningMessage,
 					fullWarning,
 				};

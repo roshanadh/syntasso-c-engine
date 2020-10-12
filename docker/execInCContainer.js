@@ -1,45 +1,37 @@
 const { exec } = require("child_process");
 const { performance } = require("perf_hooks");
-const { EXECUTION_TIME_OUT_IN_MS, MAX_LENGTH_STDOUT } = require("../config");
+
+const { EXECUTION_TIME_OUT_IN_MS, MAX_LENGTH_STDOUT } = require("../config.js");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
-		let startTime = performance.now(),
-			executionTime = 0;
 		/*
 		 * @resolve
-		 * Always resolve the stdout as resolve(stdout)
+		 * Always resolve the stdout as resolve({...}})
 		 *
 		 * @reject
 		 * Reject the error and stderr values as keys in a JSON object ...
 		 * ... that is, as reject({ error }) and reject({ stderr })
-		 * This is because when catching rejections with .catch(error) in ...
-		 * ... dockerConfigController's functions, we can see if the caught error ...
-		 * ... is an error or an stderr with if (error.error) and if (error.stderr)
 		 */
 		try {
+			let startTime = performance.now(),
+				executionTime = 0;
 			const { socketId } = req.body;
-			const containerName = socketId;
-
-			console.log(
-				`Executing user's submission in container ${containerName}`
-			);
+			console.log("Executing submission inside container...");
 			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
-				stdout: `Executing user's submission...`,
+				stdout: "Executing submission inside container...",
 			});
-
 			const mainWrapper = exec(
-				`docker exec -i -e socketId='${socketId}' -e EXECUTION_TIME_OUT_IN_MS='${EXECUTION_TIME_OUT_IN_MS}' -e MAX_LENGTH_STDOUT='${MAX_LENGTH_STDOUT}' ${containerName} node main-wrapper.js`
+				`docker exec -i -e socketId='${socketId}' -e EXECUTION_TIME_OUT_IN_MS='${EXECUTION_TIME_OUT_IN_MS}' -e MAX_LENGTH_STDOUT='${MAX_LENGTH_STDOUT}' ${socketId} node main-wrapper.js`
 			);
-			mainWrapper.stdout.on("data", stdout => {
-				executionTime = performance.now() - startTime;
-				console.log(
-					`stdout while executing submission inside container ${containerName}: ${stdout}`
-				);
+			mainWrapper.stdout.on("data", stdoutBuffer => {
 				try {
-					let stringOutput = stdout.toString();
+					executionTime = performance.now() - startTime;
+					let stringOutput = stdoutBuffer.toString();
 					let jsonOutput = JSON.parse(stringOutput);
-
+					console.log(
+						`stdout while executing submission inside container ${socketId}: ${stringOutput}`
+					);
 					if (jsonOutput.type === "test-status") {
 						// stdout is the test status for an individual test case
 						socketInstance.instance
@@ -57,18 +49,11 @@ module.exports = (req, socketInstance) => {
 							.emit("docker-app-stdout", {
 								stdout: `User's submission executed`,
 							});
-						return resolve({ ...jsonOutput, executionTime });
-					} else {
-						console.error(
-							`New response type encountered in execInCContainer for socketId ${socketId}:`,
-							jsonOutput
-						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `User's submission executed`,
-							});
-						return resolve({ ...jsonOutput, executionTime });
+						console.log(`Submission from ${socketId} executed.`);
+						return resolve({
+							...jsonOutput,
+							executionTime,
+						});
 					}
 				} catch (error) {
 					if (error.message.includes("Unexpected token { in JSON")) {
@@ -81,7 +66,7 @@ module.exports = (req, socketInstance) => {
 							console.log(
 								`Parsing stdout with adjoining JSON objects encountered for socketId ${socketId}`
 							);
-							let stream = stdout.toString().trim();
+							let stream = stdoutBuffer.toString().trim();
 							stream = stream.split("}{");
 							stream.forEach((element, index) => {
 								// add missing braces as .split("}{") removes ...
@@ -113,6 +98,9 @@ module.exports = (req, socketInstance) => {
 										.emit("docker-app-stdout", {
 											stdout: `User's submission executed`,
 										});
+									console.log(
+										`Submission from ${socketId} executed.`
+									);
 									return resolve({
 										...stream[index],
 										executionTime,
@@ -125,7 +113,7 @@ module.exports = (req, socketInstance) => {
 								err
 							);
 							return reject({
-								err,
+								error: err,
 							});
 						}
 					} else {
@@ -139,28 +127,18 @@ module.exports = (req, socketInstance) => {
 					}
 				}
 			});
-			mainWrapper.stderr.on("data", stderr => {
-				stderr = stderr.toString();
+			mainWrapper.stderr.on("data", stderrBuffer => {
+				const stderr = JSON.parse(stderrBuffer.toString());
 				console.error(
-					`stderr while executing submission inside container ${containerName}:`,
+					`Some error while executing main-wrapper inside ${socketId}:`,
 					stderr
 				);
-				socketInstance.instance.to(socketId).emit("docker-app-stdout", {
-					stdout: `stderr while executing submission`,
-				});
 				return reject({
-					stderr,
-					errorType: "runtime-error",
+					error: stderr,
 				});
 			});
 		} catch (error) {
-			console.error(
-				`error while executing submission inside container ${containerName}:`,
-				error
-			);
-			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
-				stdout: `error while executing submission`,
-			});
+			console.error("Error in execInCContainer:", error);
 			return reject({ error });
 		}
 	});
