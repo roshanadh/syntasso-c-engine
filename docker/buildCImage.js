@@ -1,43 +1,27 @@
 const { exec } = require("child_process");
 
-const convertTimeToMs = require("../util/convertTimeToMs.js");
-
+const { convertTimeToMs } = require("../util/index.js");
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
-		/*
-		 * @resolve
-		 * Always resolve the stdout as resolve(stdout)
-		 *
-		 * @reject
-		 * Reject the error and stderr values as keys in a JSON object ...
-		 * ... that is, as reject({ error }) and reject({ stderr })
-		 * This is because when catching rejections with .catch(error) in ...
-		 * ... dockerConfigController's functions, we can see if the caught error ...
-		 * ... is an error or an stderr with if (error.error) and if (error.stderr)
-		 */
 		try {
 			const { socketId } = req.body;
 			console.log("Building a C image...");
 			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
-				stdout: "Building a C image...",
+				stdout: `Building a C image...`,
 			});
-
-			let _error, _stdout, _stderr, imageBuildTime;
-
-			const imgBuildProcess = exec(
-				"time docker build -t img_c .",
+			let imageBuildTime;
+			const buildProcess = exec(
+				`time docker build -t img_c .`,
 				{ shell: "/bin/bash" },
 				(error, stdout, stderr) => {
 					if (error) {
-						_error = error;
-						console.error(`error during C image build:`, error);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `error during C image build`,
-							});
+						console.error("Error while building C image:", error);
+						// reject an object with keys error or stderr, because this ...
+						// ... makes it easier to check later if an error occurred ...
+						// ... or an stderr was generated during the build process
 						return reject({ error });
-					} else if (stderr) {
+					}
+					if (stderr) {
 						let times;
 						/*
 						 * 'time' command returns the real(total), user, and sys(system) ...
@@ -56,37 +40,43 @@ module.exports = (req, socketInstance) => {
 							times = stderr.split("\n");
 							// get build time in terms of 0m.000s
 							imageBuildTime = times[1].split("\t")[1];
+							console.log("C image built.");
+							socketInstance.instance
+								.to(socketId)
+								.emit("docker-app-stdout", {
+									stdout: "C image built.",
+								});
 							return resolve({
-								stdout: _stdout,
+								stdout,
 								imageBuildTime: convertTimeToMs(imageBuildTime),
 							});
 						} catch (err) {
 							// stderr contains an actual error and not execution times
-							_stderr = stderr;
 							console.error(
-								`stderr during C image build:`,
+								"stderr while building C image:",
 								stderr
 							);
 							socketInstance.instance
 								.to(socketId)
 								.emit("docker-app-stdout", {
-									stdout: stderr,
+									stdout: `stderr while building C image: ${stderr}`,
 								});
+							// reject an object with keys error or stderr, because this ...
+							// ... makes it easier to check later if an error occurred ...
+							// ... or an stderr was generated during the build process
 							return reject({ stderr });
 						}
 					}
 				}
 			);
-
-			imgBuildProcess.stdout.on("data", stdout => {
-				_stdout = stdout;
-				console.log(`stdout during C image build: ${stdout}`);
+			buildProcess.stdout.on("data", stdout => {
+				console.log(stdout);
 				socketInstance.instance.to(socketId).emit("docker-app-stdout", {
 					stdout,
 				});
 			});
 		} catch (error) {
-			console.log(`error during buildCImage:`, error);
+			console.error("Error in buildCContainer:", error);
 			return reject({ error });
 		}
 	});
