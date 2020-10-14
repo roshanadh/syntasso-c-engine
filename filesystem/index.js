@@ -1,7 +1,7 @@
 module.exports = {
-	initDirectories: require("./initDirectories.js"),
+	createTestFilesPath: require("./createTestFilesPath.js"),
+	createSubmissionFilePath: require("./createSubmissionFilePath.js"),
 	generateSubmissionFile: require("./generateSubmissionFile.js"),
 	generateTestFiles: require("./generateTestFiles.js"),
-	writeOutputToFile: require("./writeOutputToFile.js"),
-	cleanUpTempFiles: require("./cleanUpTempFiles.js"),
+	cleanUpClientFiles: require("./cleanUpClientFiles.js"),
 };
