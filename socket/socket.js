@@ -2,7 +2,7 @@ const socket = require("socket.io");
 const cryptoRandomString = require("crypto-random-string");
 
 const { removeCContainer } = require("../docker/index.js");
-const { cleanUpTempFiles } = require("../filesystem/index.js");
+const { cleanUpClientFiles } = require("../filesystem/index.js");
 
 class Socket {
 	constructor(server) {
@@ -30,7 +30,7 @@ class Socket {
 						error
 					)
 				);
-				cleanUpTempFiles(socket.id).catch(error =>
+				cleanUpClientFiles(socket.id).catch(error =>
 					console.error(
 						`Error during client-files/ cleanup after socket ${socket.id} disconnection:`,
 						error
