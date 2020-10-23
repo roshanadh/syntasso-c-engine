@@ -44,7 +44,7 @@ const server = app.listen(PORT, () =>
 	console.log(`Syntasso C Engine is listening on port ${PORT}...`)
 );
 
-const socketInstance = new (require("./socket/socket"))(server);
+const socketInstance = new (require("./socket/socket"))(server).instance;
 
 module.exports = {
 	server,
