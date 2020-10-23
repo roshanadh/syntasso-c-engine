@@ -52,12 +52,12 @@ const readFiles = () => {
 	}
 
 	return {
-		sampleInputs: {
+		sampleInputsData: {
 			length: len_sampleInputs,
 			files: sampleInputs,
 			fileContents: sampleInputsContents,
 		},
-		expectedOutputs: {
+		expectedOutputsData: {
 			length: len_expectedOutputs,
 			files: expectedOutputs,
 			fileContents: expectedOutputsContents,
