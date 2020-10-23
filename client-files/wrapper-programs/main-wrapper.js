@@ -26,11 +26,13 @@ const EXECUTION_TIME_OUT_IN_MS = parseInt(process.env.EXECUTION_TIME_OUT_IN_MS);
 // max length of stdout for each cProcess
 const MAX_LENGTH_STDOUT = parseInt(process.env.MAX_LENGTH_STDOUT);
 
-let sampleInputs,
-	expectedOutputs,
+let sampleInputsData,
+	expectedOutputsData,
 	sampleInputFileContents,
 	expectedOutputFileContents,
 	executionTimesForProcesses = [],
+	// array of data generated during execution of test cases
+	processes = [],
 	// response object to be sent to the process that executes main-wrapper.js
 	response = {
 		timeOutLength: EXECUTION_TIME_OUT_IN_MS,
@@ -40,7 +42,7 @@ let sampleInputs,
 try {
 	readTestFiles(socketId)
 		.then(response => {
-			({ sampleInputs, expectedOutputs } = response);
+			({ sampleInputsData, expectedOutputsData } = response);
 			main();
 		})
 		.catch(err => {
@@ -101,7 +103,7 @@ try {
 
 const main = () => {
 	// assign value to 'sampleInputs' key in response
-	let len_sampleInputs = sampleInputs.length;
+	let len_sampleInputs = sampleInputsData.length;
 	response["sampleInputs"] = len_sampleInputs;
 	// spawn n processes to execute submission n times for n sampleInputs
 	for (let i = 0; i < len_sampleInputs; i++) {
@@ -109,7 +111,7 @@ const main = () => {
 			let startTime = performance.now();
 			const cProcess = spawnSync(
 				"./submission",
-				[passSampleInputsAsArg(sampleInputs.files[i])],
+				[passSampleInputsAsArg(sampleInputsData.files[i])],
 				{
 					timeout: EXECUTION_TIME_OUT_IN_MS,
 				}
@@ -122,20 +124,20 @@ const main = () => {
 					: null;
 			const stderr =
 				io[2].toString().trim() !== "" ? io[2].toString().trim() : null;
-			expectedOutputFileContents = expectedOutputs.fileContents[
-				expectedOutputs.files[i]
+			expectedOutputFileContents = expectedOutputsData.fileContents[
+				expectedOutputsData.files[i]
 			].toString();
 
 			let testStatus =
 				expectedOutputFileContents === stdout ? true : false;
 
-			response[`sampleInput${i}`] = {
+			processes[i] = {
 				testStatus,
 				// if cProcess timed out, its signal would be SIGTERM by default ...
 				// ... otherwise, its signal would be null
 				timedOut: cProcess.signal === "SIGTERM" ? true : false,
-				sampleInput: sampleInputs.fileContents[
-					sampleInputs.files[i]
+				sampleInput: sampleInputsData.fileContents[
+					sampleInputsData.files[i]
 				].toString(),
 				expectedOutput: expectedOutputFileContents.toString(),
 				observedOutput: stdout,
@@ -166,12 +168,16 @@ const main = () => {
 	}
 	// write the final response to stdout
 	process.stdout.write(
-		Buffer.from(JSON.stringify({ type: "full-response", ...response }))
+		Buffer.from(
+			JSON.stringify({ type: "full-response", ...response, processes })
+		)
 	);
 };
 
 const passSampleInputsAsArg = sampleInput => {
 	// pass sample inputs as command-line arguments
-	sampleInputFileContents = sampleInputs.fileContents[sampleInput].toString();
+	sampleInputFileContents = sampleInputsData.fileContents[
+		sampleInput
+	].toString();
 	return sampleInputFileContents;
 };
