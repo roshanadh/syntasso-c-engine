@@ -23,7 +23,7 @@ const socketId = process.env.socketId.trim();
 
 // execution of each submission file times out after a certain period
 const EXECUTION_TIME_OUT_IN_MS = parseInt(process.env.EXECUTION_TIME_OUT_IN_MS);
-// max length of stdout for each cppProcess
+// max length of stdout for each cProcess
 const MAX_LENGTH_STDOUT = parseInt(process.env.MAX_LENGTH_STDOUT);
 
 let sampleInputs,
@@ -54,11 +54,11 @@ try {
 				try {
 					let startTime = performance.now();
 
-					const cppProcess = spawnSync("./submission", {
+					const cProcess = spawnSync("./submission", {
 						timeout: EXECUTION_TIME_OUT_IN_MS,
 					});
 					let executionTimeForProcess = performance.now() - startTime;
-					const io = cppProcess.output;
+					const io = cProcess.output;
 					const stdout =
 						io[1].toString().length <= MAX_LENGTH_STDOUT
 							? io[1].toString()
@@ -74,10 +74,9 @@ try {
 						type: "full-response",
 						sampleInputs: 0,
 						testStatus,
-						// if cppProcess timed out, its signal would be SIGTERM by default ...
+						// if cProcess timed out, its signal would be SIGTERM by default ...
 						// ... otherwise, its signal would be null
-						timedOut:
-							cppProcess.signal === "SIGTERM" ? true : false,
+						timedOut: cProcess.signal === "SIGTERM" ? true : false,
 						timeOutLength: EXECUTION_TIME_OUT_IN_MS,
 						expectedOutput: null,
 						observedOutput: stdout,
@@ -108,7 +107,7 @@ const main = () => {
 	for (let i = 0; i < len_sampleInputs; i++) {
 		try {
 			let startTime = performance.now();
-			const cppProcess = spawnSync(
+			const cProcess = spawnSync(
 				"./submission",
 				[passSampleInputsAsArg(sampleInputs.files[i])],
 				{
@@ -116,7 +115,7 @@ const main = () => {
 				}
 			);
 			executionTimesForProcesses[i] = performance.now() - startTime;
-			const io = cppProcess.output;
+			const io = cProcess.output;
 			const stdout =
 				io[1].toString().length <= MAX_LENGTH_STDOUT
 					? io[1].toString()
@@ -132,9 +131,9 @@ const main = () => {
 
 			response[`sampleInput${i}`] = {
 				testStatus,
-				// if cppProcess timed out, its signal would be SIGTERM by default ...
+				// if cProcess timed out, its signal would be SIGTERM by default ...
 				// ... otherwise, its signal would be null
-				timedOut: cppProcess.signal === "SIGTERM" ? true : false,
+				timedOut: cProcess.signal === "SIGTERM" ? true : false,
 				sampleInput: sampleInputs.fileContents[
 					sampleInputs.files[i]
 				].toString(),
@@ -156,8 +155,7 @@ const main = () => {
 						type: "test-status",
 						process: i,
 						testStatus,
-						timedOut:
-							cppProcess.signal === "SIGTERM" ? true : false,
+						timedOut: cProcess.signal === "SIGTERM" ? true : false,
 					})
 				)
 			);
