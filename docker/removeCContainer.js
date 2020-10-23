@@ -102,7 +102,7 @@ module.exports = socketId => {
 				}
 			);
 		} catch (error) {
-			console.error("Error in removeCppContainer:", error);
+			console.error("Error in removeCContainer:", error);
 			return reject({ error });
 		}
 	});
