@@ -76,7 +76,7 @@ module.exports = (req, socketInstance) => {
 				});
 			});
 		} catch (error) {
-			console.error("Error in buildCContainer:", error);
+			console.error("Error in buildCImage:", error);
 			return reject({ error });
 		}
 	});
