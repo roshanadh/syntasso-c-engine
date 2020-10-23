@@ -156,6 +156,7 @@ const main = () => {
 						process: i,
 						testStatus,
 						timedOut: cProcess.signal === "SIGTERM" ? true : false,
+						observedOutputTooLong: stdout === null ? true : false,
 					})
 				)
 			);
