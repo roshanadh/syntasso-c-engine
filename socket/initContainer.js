@@ -1,7 +1,7 @@
 const {
-	buildNodeImage,
-	createNodeContainer,
-	startNodeContainer,
+	buildCImage,
+	createCContainer,
+	startCContainer,
 } = require("../docker/index.js");
 
 module.exports = (socketId, socketInstance) => {
@@ -9,27 +9,27 @@ module.exports = (socketId, socketInstance) => {
 		let times = {};
 		socketInstance.to(socketId).emit("container-init-status", {
 			status: "building",
-			message: "Building a Node.js image...",
+			message: "Building a C image...",
 			error: null,
 		});
-		buildNodeImage(socketId, socketInstance)
+		buildCImage(socketId, socketInstance)
 			.then(buildLogs => {
 				times.imageBuildTime = buildLogs.imageBuildTime;
 				socketInstance.to(socketId).emit("container-init-status", {
 					status: "creating",
-					message: "Creating a Node.js container...",
+					message: "Creating a C container...",
 					error: null,
 				});
-				return createNodeContainer(socketId, socketInstance);
+				return createCContainer(socketId, socketInstance);
 			})
 			.then(creationLogs => {
 				times.containerCreateTime = creationLogs.containerCreateTime;
 				socketInstance.to(socketId).emit("container-init-status", {
 					status: "starting",
-					message: "Starting the Node.js container...",
+					message: "Starting the C container...",
 					error: null,
 				});
-				return startNodeContainer(socketId, socketInstance);
+				return startCContainer(socketId, socketInstance);
 			})
 			.then(startLogs => {
 				times.containerStartTime = startLogs.containerStartTime;
