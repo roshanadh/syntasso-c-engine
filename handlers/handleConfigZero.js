@@ -5,10 +5,10 @@ const handleConfigOne = require("./handleConfigOne.js");
 module.exports = (req, res, next) => {
 	const { socketInstance } = require("../server.js");
 	let times = {};
-	buildCImage(req, socketInstance)
+	buildCImage(req.body.socketId, socketInstance)
 		.then(buildLogs => {
 			times.imageBuildTime = buildLogs.imageBuildTime;
-			return createCContainer(req, socketInstance);
+			return createCContainer(req.body.socketId, socketInstance);
 		})
 		.then(creationLogs => {
 			times.containerCreateTime = creationLogs.containerCreateTime;

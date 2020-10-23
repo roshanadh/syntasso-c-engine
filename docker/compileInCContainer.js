@@ -10,7 +10,7 @@ const compileSubmission = (req, socketInstance) => {
 			let compilationTime = performance.now();
 			const { socketId } = req.body;
 			console.log("Compiling .c submission inside container...");
-			socketInstance.instance.to(socketId).emit("docker-app-stdout", {
+			socketInstance.to(socketId).emit("docker-app-stdout", {
 				stdout: "Compiling .c submission inside container...",
 			});
 			/*
@@ -54,11 +54,9 @@ const compileSubmission = (req, socketInstance) => {
 							"stderr while compiling submission:",
 							stderr
 						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `stderr while compiling submission: ${stderr}`,
-							});
+						socketInstance.to(socketId).emit("docker-app-stdout", {
+							stdout: `stderr while compiling submission: ${stderr}`,
+						});
 						// resolve an object with keys stdout and stderr both, because this ...
 						// ... makes it easier to check later if a compilation error/warning ...
 						// ... occurred or not during the compilation process
@@ -89,18 +87,14 @@ const compileSubmission = (req, socketInstance) => {
 						console.log(
 							`stdout during compilation of submission: ${stdout}`
 						);
-						socketInstance.instance
-							.to(socketId)
-							.emit("docker-app-stdout", {
-								stdout: `stdout during compilation of submission: ${stdout}`,
-							});
+						socketInstance.to(socketId).emit("docker-app-stdout", {
+							stdout: `stdout during compilation of submission: ${stdout}`,
+						});
 					}
 					console.log(`${socketId}.c compiled.`);
-					socketInstance.instance
-						.to(socketId)
-						.emit("docker-app-stdout", {
-							stdout: `${socketId}.c compiled.`,
-						});
+					socketInstance.to(socketId).emit("docker-app-stdout", {
+						stdout: `${socketId}.c compiled.`,
+					});
 					// resolve an object with keys stdout and stderr both, because this ...
 					// ... makes it easier to check later if a compilation error/warning ...
 					// ... occurred or not during the compilation process
