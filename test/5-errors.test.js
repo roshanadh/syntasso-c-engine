@@ -1,6 +1,6 @@
 const { server, chai, mocha, should, expect } = require("./test-config.js");
 
-describe("Test submission programs at /submit:", () => {
+describe("Test different errorful submissions at /submit:", () => {
 	let socket, socketId;
 	before(async () => {
 		const { getConnection } = require("./test-config.js");
