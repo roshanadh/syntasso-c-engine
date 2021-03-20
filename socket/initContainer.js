@@ -3,6 +3,7 @@ const {
 	createCContainer,
 	startCContainer,
 } = require("../docker/index.js");
+const logger = require("../util/logger.js");
 
 module.exports = (socketId, socketInstance) => {
 	return new Promise((resolve, reject) => {
@@ -52,7 +53,7 @@ module.exports = (socketId, socketInstance) => {
 				return resolve(socketId);
 			})
 			.catch(error => {
-				console.error("Error in initContainer:", error);
+				logger.error("Error in initContainer:", error);
 				socketInstance.to(socketId).emit("container-init-status", {
 					status: "error",
 					message: "Please re-establish a socket connection",
