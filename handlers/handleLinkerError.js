@@ -1,5 +1,7 @@
 const { linkerErrorParser } = require("../util/index.js");
 
+const logger = require("../util/logger.js");
+
 module.exports = (req, res, next, times, linkerError, compilationWarnings) => {
 	try {
 		const _parsedError = linkerErrorParser(linkerError);
@@ -9,10 +11,10 @@ module.exports = (req, res, next, times, linkerError, compilationWarnings) => {
 			error: { ..._parsedError, errorType: "linker-error" },
 			...times,
 		};
-		console.log("Response to the client:", response);
+		logger.info("Response to the client:", response);
 		return res.json(response);
 	} catch (error) {
-		console.error("Error in handleLinkerError:", error);
+		logger.error("Error in handleLinkerError:", error);
 		next(error);
 	}
 };

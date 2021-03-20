@@ -4,6 +4,8 @@ const {
 	splitWarningsFromError,
 } = require("../util/index.js");
 
+const logger = require("../util/logger.js");
+
 module.exports = (
 	req,
 	res,
@@ -46,10 +48,10 @@ module.exports = (
 			error: { ..._parsedError, errorType: "compilation-error" },
 			...times,
 		};
-		console.log("Response to the client:", response);
+		logger.info("Response to the client:", response);
 		return res.json(response);
 	} catch (error) {
-		console.error("Error in handleCompilationError:", error);
+		logger.error("Error in handleCompilationError:", error);
 		next(error);
 	}
 };

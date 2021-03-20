@@ -9,6 +9,7 @@ const handleLinkerError = require("./handleLinkerError.js");
 const handle403Response = require("./handle403Response.js");
 
 const { compilationWarningParser } = require("../util/index.js");
+const logger = require("../util/logger.js");
 
 module.exports = (req, res, next) => {
 	const { socketInstance } = require("../server.js");
@@ -64,7 +65,7 @@ module.exports = (req, res, next) => {
 				...execLogs,
 				...times,
 			};
-			console.log("Response to the client:", response);
+			logger.info("Response to the client:", response);
 			return res.status(200).json(response);
 		})
 		.catch(error => {
@@ -125,7 +126,7 @@ module.exports = (req, res, next) => {
 					"Wait for socket connection to initialize container environment; or re-establish a socket connection"
 				);
 			}
-			console.error("Error in handleContainerTasks:", error);
+			logger.error("Error in handleContainerTasks:", error);
 			next(error);
 		});
 };
