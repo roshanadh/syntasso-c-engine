@@ -1,6 +1,8 @@
 const path = require("path");
 const { exec } = require("child_process");
 
+const logger = require("../util/logger.js");
+
 module.exports = req => {
 	return new Promise((resolve, reject) => {
 		try {
@@ -16,7 +18,7 @@ module.exports = req => {
 				`docker cp ${localPath}/. ${socketId}:/usr/src/sandbox/`,
 				(error, stdout, stderr) => {
 					if (error) {
-						console.error(
+						logger.error(
 							`Error while copying client-files/ to container ${socketId}:`,
 							error
 						);
@@ -26,7 +28,7 @@ module.exports = req => {
 						return reject({ error });
 					}
 					if (stderr) {
-						console.error(
+						logger.error(
 							`stderr while copying client-files/ to container ${socketId}:`,
 							stderr
 						);
@@ -35,17 +37,17 @@ module.exports = req => {
 						// ... or an stderr was generated during the copying process
 						return reject({ stderr });
 					}
-					console.log(
+					logger.info(
 						`stdout after copying client-files/ to container ${socketId}: ${stdout}`
 					);
-					console.log(
+					logger.info(
 						`client-files/ copied to container ${socketId}`
 					);
 					return resolve(stdout);
 				}
 			);
 		} catch (error) {
-			console.error("Error in copyClientFilesToCContainer:", error);
+			logger.error("Error in copyClientFilesToCContainer:", error);
 			return reject({ error });
 		}
 	});

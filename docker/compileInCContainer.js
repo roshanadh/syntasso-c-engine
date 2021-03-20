@@ -3,13 +3,14 @@ const { performance } = require("perf_hooks");
 
 const removeClientFilesFromCContainer = require("./removeClientFilesFromCContainer.js");
 const copyClientFilesToCContainer = require("./copyClientFilesToCContainer.js");
+const logger = require("../util/logger.js");
 
 const compileSubmission = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {
 		try {
 			let compilationTime = performance.now();
 			const { socketId } = req.body;
-			console.log("Compiling .c submission inside container...");
+			logger.info("Compiling .c submission inside container...");
 			socketInstance.to(socketId).emit("docker-app-stdout", {
 				stdout: "Compiling .c submission inside container...",
 			});
@@ -50,7 +51,7 @@ const compileSubmission = (req, socketInstance) => {
 					// ... resolving warnings
 					if (!error && stderr) {
 						// this is the case of a compilation warning
-						console.error(
+						logger.error(
 							"stderr while compiling submission:",
 							stderr
 						);
@@ -67,7 +68,7 @@ const compileSubmission = (req, socketInstance) => {
 					}
 					if (error && stderr) {
 						// this is the case of a compilation error
-						console.error(
+						logger.error(
 							"Error while compiling submission:",
 							error
 						);
@@ -84,14 +85,14 @@ const compileSubmission = (req, socketInstance) => {
 					// at this point, compilation has completed without any errors ...
 					// ... or warnings
 					if (stdout) {
-						console.log(
+						logger.info(
 							`stdout during compilation of submission: ${stdout}`
 						);
 						socketInstance.to(socketId).emit("docker-app-stdout", {
 							stdout: `stdout during compilation of submission: ${stdout}`,
 						});
 					}
-					console.log(`${socketId}.c compiled.`);
+					logger.info(`${socketId}.c compiled.`);
 					socketInstance.to(socketId).emit("docker-app-stdout", {
 						stdout: `${socketId}.c compiled.`,
 					});
@@ -106,7 +107,7 @@ const compileSubmission = (req, socketInstance) => {
 				}
 			);
 		} catch (error) {
-			console.error("Error in compileInCContainer:", error);
+			logger.error("Error in compileInCContainer:", error);
 			return reject({ error });
 		}
 	});

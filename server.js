@@ -6,6 +6,7 @@ const session = require("express-session");
 const RedisStore = require("connect-redis")(session);
 
 const router = require("./routes/index.js");
+const logger = require("./util/logger.js");
 const {
 	PORT,
 	CLIENT_PROTOCOL,
@@ -41,7 +42,7 @@ app.use(express.json());
 app.use(router);
 
 const server = app.listen(PORT, () =>
-	console.log(`Syntasso C Engine is listening on port ${PORT}...`)
+	logger.info(`Syntasso C Engine is listening on port ${PORT}...`)
 );
 
 const socketInstance = new (require("./socket/socket"))(server).instance;
