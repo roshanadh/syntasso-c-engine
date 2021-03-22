@@ -1,8 +1,7 @@
 const { exec } = require("child_process");
 
 const removeCContainer = require("./removeCContainer.js");
-const { convertTimeToMs } = require("../util/index.js");
-const logger = require("../util/logger.js");
+const { convertTimeToMs, logger } = require("../util/index.js");
 
 module.exports = (socketId, socketInstance) => {
 	return new Promise((resolve, reject) => {

@@ -1,4 +1,4 @@
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = (error, req, res, next) => {
 	// this is the error-handling middleware

@@ -1,7 +1,7 @@
 const path = require("path");
 const rimraf = require("rimraf");
 
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = socketId => {
 	// unlike cleanUpClientFiles.js, removeTestFiles.js exports a function that ...

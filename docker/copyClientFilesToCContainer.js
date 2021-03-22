@@ -1,7 +1,7 @@
 const path = require("path");
 const { exec } = require("child_process");
 
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = req => {
 	return new Promise((resolve, reject) => {

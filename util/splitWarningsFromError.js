@@ -1,4 +1,4 @@
-const logger = require("../util/logger.js");
+const { logger } = require("../util/logger.js");
 
 module.exports = (stderr, socketId) => {
 	// return the error substring and warnings substring from a combined stack

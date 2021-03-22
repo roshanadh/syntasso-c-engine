@@ -4,7 +4,7 @@ const cryptoRandomString = require("crypto-random-string");
 const { removeCContainer } = require("../docker/index.js");
 const { cleanUpClientFiles } = require("../filesystem/index.js");
 const initContainer = require("./initContainer.js");
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 class Socket {
 	constructor(server) {
