@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = socketId => {
 	return new Promise((resolve, reject) => {

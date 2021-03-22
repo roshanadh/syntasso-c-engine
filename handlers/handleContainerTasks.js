@@ -8,8 +8,7 @@ const handleCompilationError = require("./handleCompilationError.js");
 const handleLinkerError = require("./handleLinkerError.js");
 const handle403Response = require("./handle403Response.js");
 
-const { compilationWarningParser } = require("../util/index.js");
-const logger = require("../util/logger.js");
+const { compilationWarningParser, logger } = require("../util/index.js");
 
 module.exports = (req, res, next) => {
 	const { socketInstance } = require("../server.js");

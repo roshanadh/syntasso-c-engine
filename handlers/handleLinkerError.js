@@ -1,6 +1,4 @@
-const { linkerErrorParser } = require("../util/index.js");
-
-const logger = require("../util/logger.js");
+const { linkerErrorParser, logger } = require("../util/index.js");
 
 module.exports = (req, res, next, times, linkerError, compilationWarnings) => {
 	try {

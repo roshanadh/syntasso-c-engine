@@ -3,7 +3,7 @@ const { performance } = require("perf_hooks");
 
 const removeClientFilesFromCContainer = require("./removeClientFilesFromCContainer.js");
 const copyClientFilesToCContainer = require("./copyClientFilesToCContainer.js");
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 const compileSubmission = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {

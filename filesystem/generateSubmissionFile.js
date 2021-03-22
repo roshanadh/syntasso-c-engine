@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const logger = require("../util/logger.js");
+const {logger} = require("../util/index.js");
 
 module.exports = req => {
 	const { socketId } = req.body;

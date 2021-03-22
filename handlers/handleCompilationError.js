@@ -4,7 +4,7 @@ const {
 	splitWarningsFromError,
 } = require("../util/index.js");
 
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = (
 	req,

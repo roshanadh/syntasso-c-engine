@@ -1,7 +1,7 @@
 const { exec } = require("child_process");
 const { performance } = require("perf_hooks");
 
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = (req, socketInstance) => {
 	return new Promise((resolve, reject) => {

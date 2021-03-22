@@ -1,6 +1,6 @@
 const { exec, spawnSync } = require("child_process");
 
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = socketId => {
 	return new Promise((resolve, reject) => {

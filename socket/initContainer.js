@@ -3,7 +3,7 @@ const {
 	createCContainer,
 	startCContainer,
 } = require("../docker/index.js");
-const logger = require("../util/logger.js");
+const { logger } = require("../util/index.js");
 
 module.exports = (socketId, socketInstance) => {
 	return new Promise((resolve, reject) => {
