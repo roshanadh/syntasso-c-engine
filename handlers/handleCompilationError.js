@@ -1,7 +1,9 @@
+const e = require("express");
 const {
 	compilationWarningParser,
 	compilationErrorParser,
 	splitWarningsFromError,
+	emitErrorBeforeExecEvent,
 } = require("../util/index.js");
 
 const { logger } = require("../util/index.js");
@@ -10,6 +12,7 @@ module.exports = (
 	req,
 	res,
 	next,
+	_socketInstance,
 	times,
 	compilationError,
 	compilationWarnings
@@ -48,6 +51,12 @@ module.exports = (
 			error: { ..._parsedError, errorType: "compilation-error" },
 			...times,
 		};
+
+		emitErrorBeforeExecEvent(
+			_socketInstance.socketId,
+			_socketInstance.socketInstance,
+			req.body.testCases.length
+		);
 		logger.info("Response to the client:", response);
 		return res.json(response);
 	} catch (error) {
