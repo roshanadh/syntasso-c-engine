@@ -1,4 +1,4 @@
-module.exports = (compilationError, testCasesCount) => {
+module.exports = (parsedCompilationError, testCasesCount) => {
 	let processes = [];
 	for (let i = 0; i < testCasesCount; i++) {
 		processes.push({
@@ -10,7 +10,10 @@ module.exports = (compilationError, testCasesCount) => {
 			exception: null,
 			observedOutputTooLong: false,
 			executionTimeForProcess: null,
-			compilationError,
+			error: {
+				errorType: "compilation-error",
+				...parsedCompilationError,
+			},
 		});
 	}
 
