@@ -46,6 +46,8 @@ module.exports = (
 				? compilationWarnings
 				: _parsedWarnings,
 			error: { ..._parsedError, errorType: "compilation-error" },
+			// send empty processes array
+			processes: [],
 			...times,
 		};
 		logger.info("Response to the client:", response);
