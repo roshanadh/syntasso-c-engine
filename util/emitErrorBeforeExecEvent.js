@@ -11,7 +11,7 @@ module.exports = (socketId, socketInstance, testCasesCount) => {
 		for (let i = 0; i < testCasesCount; i++) {
 			socketInstance.to(socketId).emit("test-status", {
 				type: "test-status",
-				process: processId,
+				process: i,
 				testStatus: false,
 				timedOut: false,
 				observedOutputTooLong: false,
