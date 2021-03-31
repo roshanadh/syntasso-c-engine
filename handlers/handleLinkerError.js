@@ -19,6 +19,8 @@ module.exports = (
 		const response = {
 			compilationWarnings,
 			error: { ..._parsedError, errorType: "linker-error" },
+			// send empty processes array
+			processes: [],
 			...times,
 		};
 
