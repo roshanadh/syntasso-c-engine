@@ -51,7 +51,7 @@ module.exports = (
 			error: { ..._parsedError, errorType: "compilation-error" },
 			// send processes array with compilation error info in each element
 			processes: fillProcessesArray(
-				compilationError,
+				_parsedError,
 				req.body.testCases.length
 			),
 			...times,
