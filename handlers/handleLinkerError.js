@@ -7,6 +7,8 @@ module.exports = (req, res, next, times, linkerError, compilationWarnings) => {
 		const response = {
 			compilationWarnings,
 			error: { ..._parsedError, errorType: "linker-error" },
+			// send empty processes array
+			processes: [],
 			...times,
 		};
 		logger.info("Response to the client:", response);
