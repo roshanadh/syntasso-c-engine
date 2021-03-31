@@ -13,4 +13,6 @@ module.exports = (compilationError, testCasesCount) => {
 			compilationError,
 		});
 	}
+
+	return processes;
 };
