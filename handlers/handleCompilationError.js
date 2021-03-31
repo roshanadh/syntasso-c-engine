@@ -1,9 +1,9 @@
-const e = require("express");
 const {
 	compilationWarningParser,
 	compilationErrorParser,
 	splitWarningsFromError,
 	emitErrorBeforeExecEvent,
+	fillProcessesArray,
 } = require("../util/index.js");
 
 const { logger } = require("../util/index.js");
@@ -49,8 +49,11 @@ module.exports = (
 				? compilationWarnings
 				: _parsedWarnings,
 			error: { ..._parsedError, errorType: "compilation-error" },
-			// send empty processes array
-			processes: [],
+			// send processes array with compilation error info in each element
+			processes: fillProcessesArray(
+				compilationError,
+				req.body.testCases.length
+			),
 			...times,
 		};
 
