@@ -4,9 +4,8 @@ const {
 	splitWarningsFromError,
 	emitErrorBeforeExecEvent,
 	fillProcessesArray,
+	logger,
 } = require("../util/index.js");
-
-const { logger } = require("../util/index.js");
 
 module.exports = (
 	req,
