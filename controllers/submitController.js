@@ -27,5 +27,7 @@ module.exports = async (req, res, next) => {
 				"Re-request with both sampleInput and expectedOutput in each dictionary of testCases array"
 			);
 		}
+		error.status = 503;
+		next(error);
 	}
 };
